@@ -10,6 +10,10 @@ from twisted.internet import reactor
 
 class FakeTerminal(StringTransport):
 
+    def __init__(self):
+        StringTransport.__init__(self)
+        self.connected = "unknown"
+
     # insults.RecvLine
     def LEFT_ARROW(self): pass
     def RIGHT_ARROW(self): pass
@@ -80,6 +84,8 @@ class ShellProtocolTest(unittest.TestCase):
 
     def test_lineReceived_without_args(self):
         sp = get_shell_protocol()
+        # disable running commands in the stack, so we can inspect it
+        sp.run_cmd_stack = lambda: None
         sp.lineReceived("command")
         command = sp.cmd_stack[0]
         name = command['name']
@@ -87,6 +93,7 @@ class ShellProtocolTest(unittest.TestCase):
 
     def test_lineReceived_with_args(self):
         sp = get_shell_protocol()
+        sp.run_cmd_stack = lambda: None 
         sp.lineReceived("command arg0 arg1")
         command = sp.cmd_stack[0]
         name = command['name']
@@ -97,6 +104,7 @@ class ShellProtocolTest(unittest.TestCase):
 
     def test_multiple_command_line(self):
         sp = get_shell_protocol()
+        sp.run_cmd_stack = lambda: None
         sp.lineReceived("command0 arg0; command1 arg1.0 arg1.1")
         cmd2 = sp.cmd_stack[0]
         name = cmd2['name']
@@ -111,26 +119,33 @@ class ShellProtocolTest(unittest.TestCase):
 
     def test_get_executable(self):
         sp = get_shell_protocol()
-        sp.lineReceived("test_command arg0")
-        cmd = sp.cmd_stack.pop()
+        cmd = {'name':'test_command', 'args':['arg0']}
         exe = sp.get_executable(cmd)
         self.assertIsInstance(exe, exe_test_command)
         self.assertEqual(exe.args[0], "arg0")
 
     def test_get_executable_regex(self):
         sp = get_shell_protocol()
-        sp.lineReceived("rexe_something arg0")
-        cmd = sp.cmd_stack.pop()
+        cmd = {'name':'rexe_something', 'args':['arg0']}
         exe = sp.get_executable(cmd)
         self.assertIsInstance(exe, exe_rexe)
         
     def test_get_command_returns_command_not_found(self):
         sp = get_shell_protocol()
         sp.lineReceived("not_a_command arg0")
-        sp.get_executable(sp.cmd_stack.pop())
+        #sp.get_executable(sp.cmd_stack.pop())
         self.assertEqual(
             sp.terminal.value(),
-            "StubShell: not_a_command: command not found\ntest_shell> "
+            "StubShell: not_a_command: command not found\n"
+            #"test_shell> "
+        )
+
+    def test_exit_command_drops_connection(self):
+        sp = get_shell_protocol()
+        sp.lineReceived("exit")
+        self.assertTrue(
+            sp.terminal.disconnecting,
+            "Shell did not call terminal.loseConnection()"
         )
 
 
@@ -145,6 +160,8 @@ class ShellExecutableTest(unittest.TestCase):
         exe = StubShell.Executable(sp, args)
         exe.shell.writeln("pass")
         self.assertEqual(sp.terminal.value(), "pass\n")
+
+
 
 
 class SSHRealmTest(unittest.TestCase):

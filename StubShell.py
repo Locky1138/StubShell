@@ -30,6 +30,15 @@ class exe_exit(Executable):
         self.shell.terminal.loseConnection()
 
 
+class exe_command_not_found(Executable):
+    name = 'command_not_found'
+
+    def run(self):
+        self.shell.writeln(
+            "StubShell: %s: command not found" % self.args
+        )
+
+
 # SSH Shell Configuration
 class SSHRealm:
     """The realm connects application-specific objects to the
@@ -114,7 +123,21 @@ class ShellProtocol(recvline.HistoricRecvLine):
         # now fire .run() on the command, to start it executing
         # It should execute the next command in the stack when complete
         # or return here and wait for lineReceived again
+        self.run_cmd_stack()
 
+    def run_cmd_stack(self):
+        while len(self.cmd_stack) > 0:
+            exe = self.get_executable(self.cmd_stack.pop())
+            exe.run()
+
+    def get_executable(self, cmd):
+        """search for an executable that matches the command name
+        """
+        for exe in self.executables:
+            if re.match(exe.name, cmd['name']):
+                return exe(self, cmd['args'])
+
+        return exe_command_not_found(self, cmd['name'])
 
     def writeln(self, data):
         self.terminal.write(data)
@@ -123,18 +146,6 @@ class ShellProtocol(recvline.HistoricRecvLine):
     # Overriding to prevent terminal.reset()
     def initializeScreen(self):
         pass
-
-    def get_executable(self, cmd):
-        """search for an executable that matches the command name
-        """
-        for exe in self.executables:
-            if re.match(exe.name, cmd['name']):
-                return exe(self, cmd['args'])
-        return self.command_not_found(cmd)
-
-    def command_not_found(self, cmd):
-        self.writeln("StubShell: %s: command not found" % cmd['name'])
-        self.showPrompt()
 
 
 # Functions for building and running the Server
