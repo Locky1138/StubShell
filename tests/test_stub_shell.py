@@ -39,10 +39,11 @@ class exe_test_command(StubShell.Executable):
 
 
 EXECUTABLES = [exe_test_command]
+KEYPATH = '../keys'
 
 def _build_factory():
     users = {'usr':'pas'}
-    return StubShell.get_ssh_factory(EXECUTABLES, keypath='../keys', **users)
+    return StubShell.get_ssh_factory(EXECUTABLES, keypath=KEYPATH, **users)
 
 # BEGIN TESTS
 class ShellProtocolTest(unittest.TestCase):
@@ -114,6 +115,9 @@ class ShellExecutableTest(unittest.TestCase):
     """Basic Commands to test
     exit, sudo, print, echo
     """
+    def test_exit_is_loaded_by_default(self):
+        
+
     def test_execute_command(self):
         exe = StubShell.Executable('test')
         exe.run()

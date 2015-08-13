@@ -14,7 +14,8 @@ PROMPT = "test_shell> "
 
 
 class Executable(object):
-
+    """Base class for all executable commands in the shell
+    """
     def __init__(self, name):
         self.name = name
 
@@ -25,14 +26,18 @@ class exe_test_command(Executable):
     
 
 class exe_exit(Executable):
+    """Every shell needs a basic exit command
+    """
     name = 'exit'
 
     def run(self):
         self.protocol.terminal.loseConnection()
 
 
-# Generic SSHRealm
 class SSHRealm:
+    """The realm connects application-specific objects to the
+    authentication system.
+    """
     implements(portal.IRealm)
     def __init__(self, executables):
         self.executables = executables
@@ -44,7 +49,7 @@ class SSHRealm:
 class ShellAvatar(avatar.ConchUser):
     implements(interfaces.ISession)
 
-    def __init__(self, username, executabes):
+    def __init__(self, username, executables):
         avatar.ConchUser.__init__(self)
         self.username = username
         self.executables = executables
@@ -73,8 +78,14 @@ class ShellAvatar(avatar.ConchUser):
 
 
 class ShellProtocol(recvline.HistoricRecvLine):
+    """creates shell session, defines commands
+    inject executable commands when the Factory creates the protocol instance
+    Enter causes the line buffer to be cleared
+    and the line to be passed to the lineReceived()
+    """
     def __init__(self, user, executables):
         self.user = user
+        self.mode = ''
         # FILO Stack
         self.cmd_stack = []
         self.executables = executables
@@ -101,14 +112,10 @@ class ShellProtocol(recvline.HistoricRecvLine):
         ]
         commands.reverse()
         self.cmd_stack += commands
-        """
-        for cmd in commands:
-            self.cmd_stack.append(cmd)
+        # now fire .run() on the command, to start it executing
+        # It should execute the next command in the stack when complete
+        # or return here and wait for lineReceived again
 
-        for line in lines.split(';'):
-            cmd = {'name':words[0], 'args': words[1:] in line.split()}
-            self.cmd_stack.append(cmd)
-        """
 
     def writeln(self, data):
         self.terminal.write(data)
@@ -144,6 +151,11 @@ def get_rsa_keys(keypath="keys"):
 
 
 def get_ssh_factory(executables, keypath="./keys", **users):
+    """Factory (twisted.conch.ssh.factory.SSHFactory)
+    buildProtocol method creates Protocol instances
+    for each new connection
+    
+    """
     # create generic SSHFactory instance
     ssh_factory = factory.SSHFactory()
     # register credential checker
