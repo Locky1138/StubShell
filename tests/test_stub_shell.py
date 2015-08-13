@@ -38,44 +38,55 @@ class exe_test_command(StubShell.Executable):
         self.shell.terminal.write("pass!")
 
 
-EXECUTABLES = [exe_test_command]
+class exe_rexe(StubShell.Executable):
+    name = 'rexe.*'
+
+
+EXECUTABLES = [exe_test_command, exe_rexe]
 KEYPATH = '../keys'
 
 def _build_factory():
     users = {'usr':'pas'}
     return StubShell.get_ssh_factory(EXECUTABLES, keypath=KEYPATH, **users)
 
+def get_shell_protocol():
+    sp = StubShell.ShellProtocol('usr', EXECUTABLES)
+    sp.terminal = FakeTerminal()
+    return sp
+
+
 # BEGIN TESTS
 class ShellProtocolTest(unittest.TestCase):
     """Use Fake conch.insults.insults.ITerminalTransport
     """
+
     def get_shell_protocol(self):
         sp = StubShell.ShellProtocol('usr', EXECUTABLES)
         sp.terminal = FakeTerminal()
         return sp
 
     def test_connection_made(self):
-        sp = self.get_shell_protocol()
+        sp = get_shell_protocol()
         sp.connectionMade()
         out = sp.terminal.value()
         expect_out = StubShell.GREETING + "\n" + StubShell.PROMPT
         self.assertEqual(out, expect_out)
 
     def test_write_line(self):
-        sp = self.get_shell_protocol()
+        sp = get_shell_protocol()
         sp.writeln("some output")
         out = sp.terminal.value()
         self.assertEqual(out, 'some output\n')
 
     def test_lineReceived_without_args(self):
-        sp = self.get_shell_protocol()
+        sp = get_shell_protocol()
         sp.lineReceived("command")
         command = sp.cmd_stack[0]
         name = command['name']
         self.assertEqual(name, 'command')
 
     def test_lineReceived_with_args(self):
-        sp = self.get_shell_protocol()
+        sp = get_shell_protocol()
         sp.lineReceived("command arg0 arg1")
         command = sp.cmd_stack[0]
         name = command['name']
@@ -85,7 +96,7 @@ class ShellProtocolTest(unittest.TestCase):
         self.assertEqual(args[1], 'arg1')
 
     def test_multiple_command_line(self):
-        sp = self.get_shell_protocol()
+        sp = get_shell_protocol()
         sp.lineReceived("command0 arg0; command1 arg1.0 arg1.1")
         cmd2 = sp.cmd_stack[0]
         name = cmd2['name']
@@ -94,33 +105,46 @@ class ShellProtocolTest(unittest.TestCase):
         self.assertEqual(args[0], 'arg1.0')
         self.assertEqual(args[1], 'arg1.1')
 
-    def test_get_exe(self):
-        sp = self.get_shell_protocol()
-        sp.lineReceived("test_command")
-        cmd = sp.cmd_stack.pop()
-        exe = sp.get_exe(cmd)
-        self.assertIs(exe, exe_test_command)
+    def test_exe_exit_in_shell_executables_by_default(self):
+        sp = get_shell_protocol()
+        self.assertIn(StubShell.exe_exit, sp.executables)
 
-    def test_run_exe(self):
-        sp = self.get_shell_protocol()
-        sp.lineReceived("test_command")
+    def test_get_executable(self):
+        sp = get_shell_protocol()
+        sp.lineReceived("test_command arg0")
         cmd = sp.cmd_stack.pop()
-        exe = sp.get_exe(cmd)
-        exe.run()
-        out = sp.terminal.value()
-        assertEqual(out, 'something')
+        exe = sp.get_executable(cmd)
+        self.assertIsInstance(exe, exe_test_command)
+        self.assertEqual(exe.args[0], "arg0")
+
+    def test_get_executable_regex(self):
+        sp = get_shell_protocol()
+        sp.lineReceived("rexe_something arg0")
+        cmd = sp.cmd_stack.pop()
+        exe = sp.get_executable(cmd)
+        self.assertIsInstance(exe, exe_rexe)
+        
+    def test_get_command_returns_command_not_found(self):
+        sp = get_shell_protocol()
+        sp.lineReceived("not_a_command arg0")
+        sp.get_executable(sp.cmd_stack.pop())
+        self.assertEqual(
+            sp.terminal.value(),
+            "StubShell: not_a_command: command not found\ntest_shell> "
+        )
 
 
 class ShellExecutableTest(unittest.TestCase):
     """Basic Commands to test
     exit, sudo, print, echo
     """
-    def test_exit_is_loaded_by_default(self):
-        
 
-    def test_execute_command(self):
-        exe = StubShell.Executable('test')
-        exe.run()
+    def test_Executable_can_call_containing_shell(self):
+        sp = get_shell_protocol()
+        args = []
+        exe = StubShell.Executable(sp, args)
+        exe.shell.writeln("pass")
+        self.assertEqual(sp.terminal.value(), "pass\n")
 
 
 class SSHRealmTest(unittest.TestCase):

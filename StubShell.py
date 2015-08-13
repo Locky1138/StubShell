@@ -12,18 +12,14 @@ from twisted.python import log
 GREETING = "welcome to the Test Shell"
 PROMPT = "test_shell> "
 
-
+# Executable Commands
 class Executable(object):
     """Base class for all executable commands in the shell
     """
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, shell_protocol, args):
+        self.shell = shell_protocol
+        self.args = args
 
-"""
-class exe_test_command(Executable):
-    name = 'test_command'
-"""
-    
 
 class exe_exit(Executable):
     """Every shell needs a basic exit command
@@ -31,9 +27,10 @@ class exe_exit(Executable):
     name = 'exit'
 
     def run(self):
-        self.protocol.terminal.loseConnection()
+        self.shell.terminal.loseConnection()
 
 
+# SSH Shell Configuration
 class SSHRealm:
     """The realm connects application-specific objects to the
     authentication system.
@@ -83,12 +80,13 @@ class ShellProtocol(recvline.HistoricRecvLine):
     Enter causes the line buffer to be cleared
     and the line to be passed to the lineReceived()
     """
-    def __init__(self, user, executables):
+    def __init__(self, user, executables=[]):
         self.user = user
         self.mode = ''
-        # FILO Stack
+        # FILO Stack contains instances of executable commands
         self.cmd_stack = []
         self.executables = executables
+        self.executables += [exe_exit]
 
     def connectionMade(self) : 
         recvline.HistoricRecvLine.connectionMade(self)
@@ -101,7 +99,8 @@ class ShellProtocol(recvline.HistoricRecvLine):
         self.terminal.write(PROMPT)
 
     def lineReceived(self, lines):
-        """Split list of commands on ;
+        """This is the Entry point into the Shell's executioner
+        Split list of commands on ;
         split each command on spaces to
         create a dict representing the command name and args
         and append them to the cmd_stack in reverse order (FILO)
@@ -121,26 +120,24 @@ class ShellProtocol(recvline.HistoricRecvLine):
         self.terminal.write(data)
         self.terminal.nextLine()
 
-    #def loseConnection(self):
-        # disable terminal reset, may not be needed
-        #self.transport.loseConnection()
-
     # Overriding to prevent terminal.reset()
     def initializeScreen(self):
         pass
 
-    def get_exe(self, cmd):
+    def get_executable(self, cmd):
+        """search for an executable that matches the command name
+        """
         for exe in self.executables:
-            if re.match(cmd['name'], exe.name):
-                return exe
-    """
-    class exe_exit(executable):
-        name = 'exit'
+            if re.match(exe.name, cmd['name']):
+                return exe(self, cmd['args'])
+        return self.command_not_found(cmd)
 
-        def call(self):
-            self.protocol.terminal.loseConnection()
-    """
+    def command_not_found(self, cmd):
+        self.writeln("StubShell: %s: command not found" % cmd['name'])
+        self.showPrompt()
 
+
+# Functions for building and running the Server
 def get_rsa_keys(keypath="keys"):
     pubkey = os.path.join(keypath, "public.key")
     privkey = os.path.join(keypath, "private.key")
