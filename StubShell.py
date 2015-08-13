@@ -16,9 +16,10 @@ PROMPT = "test_shell> "
 class Executable(object):
     """Base class for all executable commands in the shell
     """
-    def __init__(self, shell_protocol, args):
+    def __init__(self, shell_protocol, cmd):
         self.shell = shell_protocol
-        self.args = args
+        self.cmd = cmd['name']
+        self.args = cmd['args']
 
 
 class exe_exit(Executable):
@@ -35,7 +36,7 @@ class exe_command_not_found(Executable):
 
     def run(self):
         self.shell.writeln(
-            "StubShell: %s: command not found" % self.args
+            "StubShell: %s: command not found" % self.cmd
         )
 
 
@@ -114,10 +115,20 @@ class ShellProtocol(recvline.HistoricRecvLine):
         create a dict representing the command name and args
         and append them to the cmd_stack in reverse order (FILO)
         """
+        if lines[-1] == ';': lines = lines[:-1]
+
+        commands = []
+        for line in lines.split(';'):
+            words = line.split()
+            cmd = {'name': words[0], 'args':[]}
+            if len(words) > 1:
+                cmd['args'] = words[1:]
+            commands.append(cmd)
+        """
         commands = [
             {'name':line.split()[0], 'args': line.split()[1:]} 
             for line in lines.split(';')
-        ]
+        ]"""
         commands.reverse()
         self.cmd_stack += commands
         # now fire .run() on the command, to start it executing
@@ -135,9 +146,9 @@ class ShellProtocol(recvline.HistoricRecvLine):
         """
         for exe in self.executables:
             if re.match(exe.name, cmd['name']):
-                return exe(self, cmd['args'])
+                return exe(self, cmd)
 
-        return exe_command_not_found(self, cmd['name'])
+        return exe_command_not_found(self, cmd)
 
     def writeln(self, data):
         self.terminal.write(data)

@@ -39,14 +39,23 @@ class exe_test_command(StubShell.Executable):
     name = 'test_command'
 
     def run(self):
-        self.shell.terminal.write("pass!")
+        self.shell.writeln("pass!")
+
+class exe_test_args(StubShell.Executable):
+    name = 'test_args'
+
+    def run(self):
+        self.shell.writeln("my args are: %s" % ", ".join(self.args))
 
 
 class exe_rexe(StubShell.Executable):
     name = 'rexe.*'
 
+    def run(self):
+        self.shell.writeln("%s executed rexe" % self.cmd)
 
-EXECUTABLES = [exe_test_command, exe_rexe]
+
+EXECUTABLES = [exe_test_command, exe_test_args, exe_rexe]
 KEYPATH = '../keys'
 
 def _build_factory():
@@ -148,6 +157,20 @@ class ShellProtocolTest(unittest.TestCase):
             "Shell did not call terminal.loseConnection()"
         )
 
+    def test_execute_multiple_commands(self):
+        sp = get_shell_protocol()
+        sp.lineReceived(
+            "test_command; "
+            "test_args a1 a2; "
+            "rexeisawesome;"
+        )
+        self.assertEqual(
+            sp.terminal.value(),
+            "pass!\n"
+            "my args are: a1, a2\n"
+            "rexeisawesome executed rexe\n"
+        )
+
 
 class ShellExecutableTest(unittest.TestCase):
     """Basic Commands to test
@@ -156,8 +179,8 @@ class ShellExecutableTest(unittest.TestCase):
 
     def test_Executable_can_call_containing_shell(self):
         sp = get_shell_protocol()
-        args = []
-        exe = StubShell.Executable(sp, args)
+        cmd = {'name':'test', 'args':[]}
+        exe = StubShell.Executable(sp, cmd)
         exe.shell.writeln("pass")
         self.assertEqual(sp.terminal.value(), "pass\n")
 
