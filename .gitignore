@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 tmp/*
 virtualenv/*
+keys/public.key
+keys/private.key
+_trial_temp/

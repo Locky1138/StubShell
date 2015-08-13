@@ -134,7 +134,7 @@ class ShellProtocol(recvline.HistoricRecvLine):
             self.protocol.terminal.loseConnection()
     """
 
-def get_rsa_keys(keypath="."):
+def get_rsa_keys(keypath="keys"):
     pubkey = os.path.join(keypath, "public.key")
     privkey = os.path.join(keypath, "private.key")
 
@@ -143,7 +143,7 @@ def get_rsa_keys(keypath="."):
     return publicKeyString, privateKeyString
 
 
-def get_ssh_factory(executables, keypath=".", **users):
+def get_ssh_factory(executables, keypath="./keys", **users):
     # create generic SSHFactory instance
     ssh_factory = factory.SSHFactory()
     # register credential checker

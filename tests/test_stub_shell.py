@@ -1,5 +1,5 @@
 from twisted.trial import unittest
-from IPtomato import ssh_server
+import StubShell 
 from twisted.test.proto_helpers import StringTransport
 
 from twisted.conch.ssh import factory
@@ -31,7 +31,7 @@ class FakeTerminal(StringTransport):
         self.write('\n')
 
 
-class exe_test_command(ssh_server.Executable):
+class exe_test_command(StubShell.Executable):
     name = 'test_command'
 
     def run(self):
@@ -42,14 +42,14 @@ EXECUTABLES = [exe_test_command]
 
 def _build_factory():
     users = {'usr':'pas'}
-    return ssh_server.get_ssh_factory(EXECUTABLES, keypath="..", **users)
+    return StubShell.get_ssh_factory(EXECUTABLES, keypath='../keys', **users)
 
 # BEGIN TESTS
 class ShellProtocolTest(unittest.TestCase):
     """Use Fake conch.insults.insults.ITerminalTransport
     """
     def get_shell_protocol(self):
-        sp = ssh_server.ShellProtocol('usr', EXECUTABLES)
+        sp = StubShell.ShellProtocol('usr', EXECUTABLES)
         sp.terminal = FakeTerminal()
         return sp
 
@@ -57,7 +57,7 @@ class ShellProtocolTest(unittest.TestCase):
         sp = self.get_shell_protocol()
         sp.connectionMade()
         out = sp.terminal.value()
-        expect_out = ssh_server.GREETING + "\n" + ssh_server.PROMPT
+        expect_out = StubShell.GREETING + "\n" + StubShell.PROMPT
         self.assertEqual(out, expect_out)
 
     def test_write_line(self):
@@ -115,7 +115,7 @@ class ShellExecutableTest(unittest.TestCase):
     exit, sudo, print, echo
     """
     def test_execute_command(self):
-        exe = ssh_server.Executable('test')
+        exe = StubShell.Executable('test')
         exe.run()
 
 
@@ -127,11 +127,11 @@ class SSHRealmTest(unittest.TestCase):
 
     def test_create_ssh_factory_portal(self):
         ssh_factory = _build_factory()
-        ssh_factory.portal = portal.Portal(ssh_server.SSHRealm(EXECUTABLES))
+        ssh_factory.portal = portal.Portal(StubShell.SSHRealm(EXECUTABLES))
 
     def test_register_checkers(self):
         ssh_factory = _build_factory()
-        ssh_factory.portal = portal.Portal(ssh_server.SSHRealm(EXECUTABLES))
+        ssh_factory.portal = portal.Portal(StubShell.SSHRealm(EXECUTABLES))
        
         users = {'usr':'pas'}
         ssh_factory.portal.registerChecker(
