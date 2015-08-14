@@ -6,6 +6,7 @@ from twisted.conch.ssh import factory
 from twisted.cred import portal, checkers
 from twisted.internet import reactor
 
+PROMPT = StubShell.PROMPT
 
 
 class FakeTerminal(StringTransport):
@@ -146,7 +147,7 @@ class ShellProtocolTest(unittest.TestCase):
         self.assertEqual(
             sp.terminal.value(),
             "StubShell: not_a_command: command not found\n"
-            #"test_shell> "
+            + PROMPT
         )
 
     def test_exit_command_drops_connection(self):
@@ -169,6 +170,7 @@ class ShellProtocolTest(unittest.TestCase):
             "pass!\n"
             "my args are: a1, a2\n"
             "rexeisawesome executed rexe\n"
+            + PROMPT
         )
 
 

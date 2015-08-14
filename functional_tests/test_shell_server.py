@@ -31,8 +31,12 @@ class ParamikoShellTest(unittest.TestCase):
         recv_all(channel)
         trans = ssh.get_transport()
         self.assertTrue(trans.is_active())
+
         channel.send('exit\n')
+        
         recv_all(channel)
+        time.sleep(1)
+        trans = ssh.get_transport()
         self.assertFalse(trans.is_active())
 
 class CommandTests(unittest.TestCase):

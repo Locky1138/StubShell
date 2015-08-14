@@ -21,6 +21,13 @@ class Executable(object):
         self.cmd = cmd['name']
         self.args = cmd['args']
 
+    def run(self):
+        """main logic for the executable"""
+
+    def end(self):
+        """returns to the Shell's cmd_stack execution loop"""
+        
+
 
 class exe_exit(Executable):
     """Every shell needs a basic exit command
@@ -28,6 +35,7 @@ class exe_exit(Executable):
     name = 'exit'
 
     def run(self):
+        log.msg('run exit()')
         self.shell.terminal.loseConnection()
 
 
@@ -35,6 +43,7 @@ class exe_command_not_found(Executable):
     name = 'command_not_found'
 
     def run(self):
+        log.err('command not found: %s' % self.cmd)
         self.shell.writeln(
             "StubShell: %s: command not found" % self.cmd
         )
@@ -140,6 +149,8 @@ class ShellProtocol(recvline.HistoricRecvLine):
         while len(self.cmd_stack) > 0:
             exe = self.get_executable(self.cmd_stack.pop())
             exe.run()
+
+        self.showPrompt()
 
     def get_executable(self, cmd):
         """search for an executable that matches the command name
