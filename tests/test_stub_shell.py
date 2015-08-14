@@ -13,7 +13,6 @@ class FakeTerminal(StringTransport):
 
     def __init__(self):
         StringTransport.__init__(self)
-        self.connected = "unknown"
 
     # insults.RecvLine
     def LEFT_ARROW(self): pass
@@ -185,8 +184,6 @@ class ShellExecutableTest(unittest.TestCase):
         exe = StubShell.Executable(sp, cmd)
         exe.shell.writeln("pass")
         self.assertEqual(sp.terminal.value(), "pass\n")
-
-
 
 
 class SSHRealmTest(unittest.TestCase):

@@ -1,47 +1,28 @@
 import unittest
-import time
-#import pexpect
+import pexpect
 
 
-def recv_all(channel):
-    while not channel.recv_ready():
-        time.sleep(0.1)
-    stdout = ''
-    while channel.recv_ready():
-        stdout += channel.recv(1024)
-    return stdout
+class StubShellServerTest(unittest.TestCase):
 
+    def setUp(self):
+        # Log into the Test Shell using usr/pas authentication
+        self.shell = pexpect.spawn('ssh -p 9999 usr@127.0.0.1')
+        self.shell.expect('assword')
+        self.shell.sendline('pas')
+        self.shell.expect('test_shell> ')
 
-class ParamikoShellTest(unittest.TestCase):
+    def tearDown(self):
+        # Issue the exit command, and make sure we are disconnected
+        self.shell.sendline('exit')
+        self.shell.expect(pexpect.EOF)
+        self.shell.close
 
-    def test_connect_to_shell(self):
-        import paramiko
-
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.WarningPolicy())
-        ssh.connect('127.0.0.1',
-                username='usr',
-                password='pas',
-                port=9999,
-                allow_agent=False,
-                look_for_keys=False
-        )
-
-        channel = ssh.invoke_shell()
-        recv_all(channel)
-        trans = ssh.get_transport()
-        self.assertTrue(trans.is_active())
-
-        channel.send('exit\n')
-        
-        recv_all(channel)
-        time.sleep(1)
-        trans = ssh.get_transport()
-        self.assertFalse(trans.is_active())
-
-class CommandTests(unittest.TestCase):
-    pass
-
+    def test_unknown_command(self):
+        # If we issue a non-existant command, it tells us
+        self.shell.sendline('not_a_command bad args')
+        self.shell.expect('StubShell: not_a_command: command not found')
+        # then prompts for a new command
+        self.shell.expect('test_shell> ')
 
 
 
