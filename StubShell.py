@@ -9,8 +9,12 @@ import re
 from twisted.internet import reactor
 from twisted.python import log
 
+# pulled directly by ShellProtocol, should be arguments?
 GREETING = "welcome to the Test Shell"
 PROMPT = "test_shell> "
+# or maybe we should add EXECUTABLES here,
+# instead of passing them down a long chain
+
 
 # Executable Commands
 class Executable(object):
@@ -25,8 +29,9 @@ class Executable(object):
         """main logic for the executable"""
 
     def end(self):
-        """returns to the Shell's cmd_stack execution loop"""
-        
+        """returns to the Shell's cmd_stack execution loop
+        May not actually need this
+        """
 
 
 class exe_exit(Executable):
@@ -40,6 +45,8 @@ class exe_exit(Executable):
 
 
 class exe_command_not_found(Executable):
+    """an executable to handle any un-expected commands
+    """
     name = 'command_not_found'
 
     def run(self):
@@ -55,11 +62,16 @@ class SSHRealm:
     authentication system.
     """
     implements(portal.IRealm)
+
     def __init__(self, executables):
         self.executables = executables
 
     def requestAvatar(self, avatarId, mind, *interfaces):
-        return interfaces[0], ShellAvatar(avatarId, self.executables), lambda: None
+        return(
+            interfaces[0],
+            ShellAvatar(avatarId, self.executables),
+            lambda: None
+        )
 
 
 class ShellAvatar(avatar.ConchUser):
@@ -69,11 +81,11 @@ class ShellAvatar(avatar.ConchUser):
         avatar.ConchUser.__init__(self)
         self.username = username
         self.executables = executables
-        self.channelLookup.update({'session':session.SSHSession})
+        self.channelLookup.update({'session': session.SSHSession})
 
     def openShell(self, protocol):
         shell_protocol = insults.ServerProtocol(
-            ShellProtocol, 
+            ShellProtocol,
             self,
             self.executables,
         )
@@ -107,9 +119,9 @@ class ShellProtocol(recvline.HistoricRecvLine):
         self.executables = executables
         self.executables += [exe_exit]
 
-    def connectionMade(self) : 
+    def connectionMade(self):
         recvline.HistoricRecvLine.connectionMade(self)
-        self.terminal.reset = lambda: None 
+        self.terminal.reset = lambda: None
         self.terminal.write(GREETING)
         self.terminal.nextLine()
         self.showPrompt()
@@ -124,33 +136,29 @@ class ShellProtocol(recvline.HistoricRecvLine):
         create a dict representing the command name and args
         and append them to the cmd_stack in reverse order (FILO)
         """
-        if lines[-1] == ';': lines = lines[:-1]
+        if lines[-1] == ';':
+            lines = lines[:-1]
 
         commands = []
         for line in lines.split(';'):
             words = line.split()
-            cmd = {'name': words[0], 'args':[]}
+            cmd = {'name': words[0], 'args': []}
             if len(words) > 1:
                 cmd['args'] = words[1:]
             commands.append(cmd)
-        """
-        commands = [
-            {'name':line.split()[0], 'args': line.split()[1:]} 
-            for line in lines.split(';')
-        ]"""
+
         commands.reverse()
         self.cmd_stack += commands
         # now fire .run() on the command, to start it executing
         # It should execute the next command in the stack when complete
-        # or return here and wait for lineReceived again
+        # then return to waiting for lineReceived again
         self.run_cmd_stack()
+        self.showPrompt()
 
     def run_cmd_stack(self):
         while len(self.cmd_stack) > 0:
             exe = self.get_executable(self.cmd_stack.pop())
             exe.run()
-
-        self.showPrompt()
 
     def get_executable(self, cmd):
         """search for an executable that matches the command name
@@ -184,16 +192,14 @@ def get_ssh_factory(executables, keypath="./keys", **users):
     """Factory (twisted.conch.ssh.factory.SSHFactory)
     buildProtocol method creates Protocol instances
     for each new connection
-    
     """
     # create generic SSHFactory instance
     ssh_factory = factory.SSHFactory()
-    # register credential checker
-    checker = checkers.InMemoryUsernamePasswordDatabaseDontUse(**users)
-    #ssh_factory.portal.registerChecker(checker)
     # create factroy authentication portal using SSHRealm
     ssh_factory.portal = portal.Portal(SSHRealm(executables))
-    ssh_factory.portal.registerChecker(checker)
+    ssh_factory.portal.registerChecker(
+        checkers.InMemoryUsernamePasswordDatabaseDontUse(**users)
+    )
     # Set RSA Credentials
     pubkey, privkey = get_rsa_keys(keypath)
     ssh_factory.publicKeys = {
@@ -208,7 +214,6 @@ def get_ssh_factory(executables, keypath="./keys", **users):
     }
 
     return ssh_factory
-
 
 
 if __name__ == "__main__":
