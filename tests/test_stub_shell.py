@@ -5,7 +5,7 @@ from twisted.test.proto_helpers import StringTransport
 
 from twisted.conch.ssh import factory
 from twisted.cred import portal, checkers
-from twisted.internet import reactor, defer
+from twisted.internet import reactor, task, defer
 
 
 PROMPT = StubShell.PROMPT
@@ -42,12 +42,15 @@ class exe_test_command(StubShell.Executable):
 
     def main(self):
         self.shell.writeln("pass!")
+        return 0
+
 
 class exe_test_args(StubShell.Executable):
     name = 'test_args'
 
     def main(self):
         self.shell.writeln("my args are: %s" % ", ".join(self.args))
+        return 0
 
 
 class exe_rexe(StubShell.Executable):
@@ -55,9 +58,10 @@ class exe_rexe(StubShell.Executable):
 
     def main(self):
         self.shell.writeln("%s executed rexe" % self.cmd)
+        return 0
 
 
-class exe_wait(StubShell.Executable):
+class exe_test_wait(StubShell.Executable):
     """Temporarily Static executable
     will be refactored to use as a superclass for blockers
     """
@@ -66,23 +70,22 @@ class exe_wait(StubShell.Executable):
     def run(self):
         #self.shell.writeln("BEGIN")
         self.loopy(int(self.args[0]))
+        return 0
 
     def loopy(self, i):
         d = defer.Deferred()
         if i > 0:
             self.shell.writeln("waiting...")
             d.addCallback(self.loopy)
-            reactor.callLater(1, d.callback, i-1)
+            self.reactor.callLater(1, d.callback, i-1)
         else:
             #self.shell.writeln("DONE!")
-            d.addCallback(self.end)
+            #d.addCallback(self.end)
             d.callback(i)
 
-    def end(self, i):
-        self.shell.resume()
 
 
-EXECUTABLES = [exe_wait, exe_test_command, exe_test_args, exe_rexe]
+EXECUTABLES = [exe_test_command, exe_test_args, exe_rexe]
 KEYPATH = '../keys'
 
 def _build_factory():
@@ -175,6 +178,7 @@ class ShellProtocolTest(unittest.TestCase):
             "StubShell: not_a_command: command not found\n"
             + PROMPT
         )
+        self.assertEqual(sp.RET, 127)
 
     def test_execute_multiple_commands(self):
         sp = get_shell_protocol()
@@ -200,7 +204,7 @@ class ShellExecutableTest(unittest.TestCase):
     def test_Executable_can_call_containing_shell(self):
         sp = get_shell_protocol()
         cmd = {'name':'test', 'args':[]}
-        exe = StubShell.Executable(sp, cmd)
+        exe = StubShell.Executable(sp, cmd, reactor)
         exe.shell.writeln("pass")
         self.assertEqual(sp.terminal.value(), "pass\n")
 
@@ -214,11 +218,26 @@ class ShellExecutableTest(unittest.TestCase):
 
     def test_waiting_executable(self):
         sp = get_shell_protocol()
-        sp.lineReceived("wait 5")
+        clock = task.Clock()
+        exe = StubShell.exe_wait(
+            sp,
+            {'name':'wait', 'args':'3'},
+            clock
+        )
+
+        exe.run()
+        for _ in range(3):
+            self.assertEqual(
+                sp.terminal.value(),
+                    "waiting...\n"
+            )
+            sp.terminal.clear()
+            clock.advance(1)
+
         self.assertEqual(
             sp.terminal.value(),
-            "waiting...\n"*5 + PROMPT
-        )
+            PROMPT
+       )
         
 
 class SSHRealmTest(unittest.TestCase):

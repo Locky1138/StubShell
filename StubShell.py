@@ -6,7 +6,7 @@ from twisted.conch.insults import insults
 import os
 import sys
 import re
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.python import log
 
 # pulled directly by ShellProtocol, should be arguments?
@@ -20,22 +20,30 @@ PROMPT = "test_shell> "
 class Executable(object):
     """Base class for all executable commands in the shell
     """
-    def __init__(self, shell_protocol, cmd):
+    def __init__(self, shell_protocol, cmd, reactor):
         self.shell = shell_protocol
         self.cmd = cmd['name']
         self.args = cmd['args']
+        self.reactor = reactor
 
-    def run(self):
-        self.main()
-        self.end()
+    def executor(self):
+        d = defer.Deferred()
+        d.addCallback(lambda noop: self.main())
+        return 0
 
     def main(self):
         """main logic for the executable"""
 
-    def end(self):
+    def run(self):
+        """what it do"""
+        ret = self.main()
+        self.shell.resume(ret)
+
+
+    def end(self, ret):
         """returns to the Shell's cmd_stack execution loop
         """
-        self.shell.resume()
+        self.shell.resume(ret)
 
 
 class exe_exit(Executable):
@@ -46,6 +54,7 @@ class exe_exit(Executable):
     def main(self):
         log.msg('run exit()')
         self.shell.terminal.loseConnection()
+        return 0
 
 
 class exe_command_not_found(Executable):
@@ -58,8 +67,9 @@ class exe_command_not_found(Executable):
         self.shell.writeln(
             "StubShell: %s: command not found" % self.cmd
         )
+        return 127
 
-'''
+
 class exe_wait(Executable):
     """Temporarily Static executable
     will be refactored to use as a superclass for blockers
@@ -67,23 +77,25 @@ class exe_wait(Executable):
     name = 'wait'
 
     def run(self):
+        #print "wait reactor is: "
+        #print self.reactor
+        i = int(self.args[0])
         #self.shell.writeln("BEGIN")
-        self.loopy(args[0])
+        self.loopy(i)
+        return 0
 
     def loopy(self, i):
         d = defer.Deferred()
         if i > 0:
             self.shell.writeln("waiting...")
             d.addCallback(self.loopy)
-            reactor.callLater(1, d.callback, i-1)
+            self.reactor.callLater(1, d.callback, i-1)
         else:
             #self.shell.writeln("DONE!")
             d.addCallback(self.end)
-            d.callback(i)
+            d.callback(0)
 
-    def end(self, i):
-        self.shell.resume()
-'''
+
 
 # SSH Shell Configuration
 class SSHRealm:
@@ -181,15 +193,22 @@ class ShellProtocol(recvline.HistoricRecvLine):
         # now fire .run() on the command, to start it executing
         # It should execute the next command in the stack when complete
         # then return to waiting for lineReceived again
-        self.resume()
+        self.resume(None)
 
     def run_cmd_stack(self):
-        exe = self.get_executable(self.cmd_stack.pop())
+        """what if we have exe.run() return a diferred
+        that must return before we allow the shell to resume?
+        that would allow us to take the return-code from the
+        exe's defer, and add it to the Shell's env for get_return calls
+        """
+        cmd = self.cmd_stack.pop()
+        exe = self.get_executable(cmd)
         exe.run()
     
-    def resume(self):
+    def resume(self, ret):
         """Used by Executables to signal their completion
         """
+        self.RET = ret
         if len(self.cmd_stack) > 0:
             self.run_cmd_stack()
         else:
@@ -200,9 +219,9 @@ class ShellProtocol(recvline.HistoricRecvLine):
         """
         for exe in self.executables:
             if re.match(exe.name, cmd['name']):
-                return exe(self, cmd)
+                return exe(self, cmd, reactor)
 
-        return exe_command_not_found(self, cmd)
+        return exe_command_not_found(self, cmd, reactor)
 
     def writeln(self, data):
         self.terminal.write(data)
