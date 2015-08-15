@@ -1,10 +1,12 @@
+# Run Me with 'trial tests/test_stub_shell.py'
 from twisted.trial import unittest
-import StubShell 
+import StubShell
 from twisted.test.proto_helpers import StringTransport
 
 from twisted.conch.ssh import factory
 from twisted.cred import portal, checkers
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
+
 
 PROMPT = StubShell.PROMPT
 
@@ -38,24 +40,49 @@ class FakeTerminal(StringTransport):
 class exe_test_command(StubShell.Executable):
     name = 'test_command'
 
-    def run(self):
+    def main(self):
         self.shell.writeln("pass!")
 
 class exe_test_args(StubShell.Executable):
     name = 'test_args'
 
-    def run(self):
+    def main(self):
         self.shell.writeln("my args are: %s" % ", ".join(self.args))
 
 
 class exe_rexe(StubShell.Executable):
     name = 'rexe.*'
 
-    def run(self):
+    def main(self):
         self.shell.writeln("%s executed rexe" % self.cmd)
 
 
-EXECUTABLES = [exe_test_command, exe_test_args, exe_rexe]
+class exe_wait(StubShell.Executable):
+    """Temporarily Static executable
+    will be refactored to use as a superclass for blockers
+    """
+    name = 'wait'
+
+    def run(self):
+        #self.shell.writeln("BEGIN")
+        self.loopy(int(self.args[0]))
+
+    def loopy(self, i):
+        d = defer.Deferred()
+        if i > 0:
+            self.shell.writeln("waiting...")
+            d.addCallback(self.loopy)
+            reactor.callLater(1, d.callback, i-1)
+        else:
+            #self.shell.writeln("DONE!")
+            d.addCallback(self.end)
+            d.callback(i)
+
+    def end(self, i):
+        self.shell.resume()
+
+
+EXECUTABLES = [exe_wait, exe_test_command, exe_test_args, exe_rexe]
 KEYPATH = '../keys'
 
 def _build_factory():
@@ -149,14 +176,6 @@ class ShellProtocolTest(unittest.TestCase):
             + PROMPT
         )
 
-    def test_exit_command_drops_connection(self):
-        sp = get_shell_protocol()
-        sp.lineReceived("exit")
-        self.assertTrue(
-            sp.terminal.disconnecting,
-            "Shell did not call terminal.loseConnection()"
-        )
-
     def test_execute_multiple_commands(self):
         sp = get_shell_protocol()
         sp.lineReceived(
@@ -185,6 +204,22 @@ class ShellExecutableTest(unittest.TestCase):
         exe.shell.writeln("pass")
         self.assertEqual(sp.terminal.value(), "pass\n")
 
+    def test_exit_command_drops_connection(self):
+        sp = get_shell_protocol()
+        sp.lineReceived("exit")
+        self.assertTrue(
+            sp.terminal.disconnecting,
+            "Shell did not call terminal.loseConnection()"
+        )
+
+    def test_waiting_executable(self):
+        sp = get_shell_protocol()
+        sp.lineReceived("wait 5")
+        self.assertEqual(
+            sp.terminal.value(),
+            "waiting...\n"*5 + PROMPT
+        )
+        
 
 class SSHRealmTest(unittest.TestCase):
     """Realm is used to create the authenticatin Portal in the ssh factory

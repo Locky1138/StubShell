@@ -26,12 +26,16 @@ class Executable(object):
         self.args = cmd['args']
 
     def run(self):
+        self.main()
+        self.end()
+
+    def main(self):
         """main logic for the executable"""
 
     def end(self):
         """returns to the Shell's cmd_stack execution loop
-        May not actually need this
         """
+        self.shell.resume()
 
 
 class exe_exit(Executable):
@@ -39,7 +43,7 @@ class exe_exit(Executable):
     """
     name = 'exit'
 
-    def run(self):
+    def main(self):
         log.msg('run exit()')
         self.shell.terminal.loseConnection()
 
@@ -49,12 +53,37 @@ class exe_command_not_found(Executable):
     """
     name = 'command_not_found'
 
-    def run(self):
+    def main(self):
         log.err('command not found: %s' % self.cmd)
         self.shell.writeln(
             "StubShell: %s: command not found" % self.cmd
         )
 
+'''
+class exe_wait(Executable):
+    """Temporarily Static executable
+    will be refactored to use as a superclass for blockers
+    """
+    name = 'wait'
+
+    def run(self):
+        #self.shell.writeln("BEGIN")
+        self.loopy(args[0])
+
+    def loopy(self, i):
+        d = defer.Deferred()
+        if i > 0:
+            self.shell.writeln("waiting...")
+            d.addCallback(self.loopy)
+            reactor.callLater(1, d.callback, i-1)
+        else:
+            #self.shell.writeln("DONE!")
+            d.addCallback(self.end)
+            d.callback(i)
+
+    def end(self, i):
+        self.shell.resume()
+'''
 
 # SSH Shell Configuration
 class SSHRealm:
@@ -152,13 +181,19 @@ class ShellProtocol(recvline.HistoricRecvLine):
         # now fire .run() on the command, to start it executing
         # It should execute the next command in the stack when complete
         # then return to waiting for lineReceived again
-        self.run_cmd_stack()
-        self.showPrompt()
+        self.resume()
 
     def run_cmd_stack(self):
-        while len(self.cmd_stack) > 0:
-            exe = self.get_executable(self.cmd_stack.pop())
-            exe.run()
+        exe = self.get_executable(self.cmd_stack.pop())
+        exe.run()
+    
+    def resume(self):
+        """Used by Executables to signal their completion
+        """
+        if len(self.cmd_stack) > 0:
+            self.run_cmd_stack()
+        else:
+            self.showPrompt() 
 
     def get_executable(self, cmd):
         """search for an executable that matches the command name
@@ -219,7 +254,7 @@ def get_ssh_factory(executables, keypath="./keys", **users):
 if __name__ == "__main__":
     log.startLogging(sys.stderr)
     users = {'usr': 'pas'}
-    EXECUTABLES = []
+    EXECUTABLES = [exe_wait]
 
     ssh_factory = get_ssh_factory(EXECUTABLES, **users)
     reactor.listenTCP(9999, ssh_factory)
