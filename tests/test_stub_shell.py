@@ -122,29 +122,6 @@ class ShellExecutableTest(unittest.TestCase):
             "Shell did not call terminal.loseConnection()"
         )
 
-    def test_waiting_executable(self):
-        sp = base.get_shell_protocol()
-        clock = task.Clock()
-        exe = StubShell.exe_wait(
-            {'name':'wait', 'args':['3']},
-            sp,
-            clock
-        )
-
-        exe.run()
-        for _ in range(3):
-            self.assertEqual(
-                sp.terminal.value(),
-                "waiting...\n"
-            )
-            sp.terminal.clear()
-            clock.advance(1)
-
-        self.assertEqual(
-            sp.terminal.value(),
-            PROMPT
-       )
-        
 
 class SSHRealmTest(unittest.TestCase):
     """Realm is used to create the authenticatin Portal in the ssh factory

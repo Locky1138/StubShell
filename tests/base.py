@@ -32,6 +32,7 @@ class FakeTerminal(StringTransport):
         self.write('\n')
 
 
+# Executables for testing
 class exe_test_command(StubShell.Executable):
     name = 'test_command'
 

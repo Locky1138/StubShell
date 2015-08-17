@@ -9,40 +9,13 @@ import re
 from twisted.internet import reactor, defer
 from twisted.python import log
 
+from BaseExecutables import Executable
 
 # pulled directly by ShellProtocol, should be arguments?
 GREETING = "welcome to the Test Shell"
 PROMPT = "test_shell> "
 # or maybe we should add EXECUTABLES here,
 # instead of passing them down a long chain
-
-
-# Executable Base Classes
-class Executable(object):
-    """Base class for all executable commands in the shell
-    """
-    def __init__(self, cmd, shell_protocol):
-        self.shell = shell_protocol
-        self.cmd = cmd['name']
-        self.args = cmd['args']
-
-    def executor(self):
-        d = defer.Deferred()
-        d.addCallback(lambda noop: self.main())
-        return 0
-
-    def main(self):
-        """main logic for the executable"""
-
-    def run(self):
-        """what it do"""
-        ret = self.main()
-        self.shell.resume(ret)
-
-    def end(self, ret):
-        """returns to the Shell's cmd_stack execution loop
-        """
-        self.shell.resume(ret)
 
 
 # Builtin Executables
@@ -68,35 +41,6 @@ class exe_command_not_found(Executable):
             "StubShell: %s: command not found" % self.cmd
         )
         return 127
-
-
-class exe_wait(Executable):
-    """Temporarily Static executable
-    will be refactored to use as a superclass for blockers
-    """
-    name = 'wait'
-    def __init__(self, cmd, shell_protocol, reactor=reactor):
-        super(exe_wait, self).__init__(cmd, shell_protocol)
-        self.reactor = reactor
-
-    def run(self):
-        #print "wait reactor is: "
-        #print self.reactor
-        i = int(self.args[0])
-        #self.shell.writeln("BEGIN")
-        self.loopy(i)
-        return 0
-
-    def loopy(self, i):
-        d = defer.Deferred()
-        if i > 0:
-            self.shell.writeln("waiting...")
-            d.addCallback(self.loopy)
-            self.reactor.callLater(1, d.callback, i-1)
-        else:
-            #self.shell.writeln("DONE!")
-            d.addCallback(self.end)
-            d.callback(0)
 
 
 # SSH Shell Configuration
