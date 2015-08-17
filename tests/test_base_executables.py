@@ -5,15 +5,12 @@ import base
 from twisted.internet import task
 
 
-PROMPT = base.StubShell.PROMPT
+PROMPT = base.PROMPT
 
 class exe_timed(BaseExecutables.TimedExe):
     name = "wait"
     first_print = "Begin Waiting:"
     final_print = "Waiting Complete"
-
-
-EXECUTABLES = [exe_timed]
 
 
 class BaseExecutablesTest(unittest.TestCase):
@@ -28,14 +25,15 @@ class BaseExecutablesTest(unittest.TestCase):
         )
 
         exe.run()
-
+        # first we print the first_print line
         self.assertEqual(
             sp.terminal.value(),
             "Begin Waiting:\n"
         )
         sp.terminal.clear()
         clock.advance(1)
-    
+        # then we see the output from print_timed_output
+        # count times
         for _ in range(3):
             self.assertEqual(
                 sp.terminal.value(),
@@ -43,7 +41,7 @@ class BaseExecutablesTest(unittest.TestCase):
             )
             sp.terminal.clear()
             clock.advance(1)
-
+        # finally we see the final_print line, and prompt
         self.assertEqual(
             sp.terminal.value(),
             "Waiting Complete\n" + PROMPT
