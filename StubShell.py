@@ -9,6 +9,7 @@ import re
 from twisted.internet import reactor, defer
 from twisted.python import log
 
+
 # pulled directly by ShellProtocol, should be arguments?
 GREETING = "welcome to the Test Shell"
 PROMPT = "test_shell> "
@@ -96,7 +97,6 @@ class exe_wait(Executable):
             #self.shell.writeln("DONE!")
             d.addCallback(self.end)
             d.callback(0)
-
 
 
 # SSH Shell Configuration

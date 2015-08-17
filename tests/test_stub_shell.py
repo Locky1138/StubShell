@@ -196,7 +196,7 @@ class ShellExecutableTest(unittest.TestCase):
         sp = get_shell_protocol()
         clock = task.Clock()
         exe = StubShell.exe_wait(
-            {'name':'wait', 'args':'3'},
+            {'name':'wait', 'args':['3']},
             sp,
             clock
         )
@@ -205,7 +205,7 @@ class ShellExecutableTest(unittest.TestCase):
         for _ in range(3):
             self.assertEqual(
                 sp.terminal.value(),
-                    "waiting...\n"
+                "waiting...\n"
             )
             sp.terminal.clear()
             clock.advance(1)
