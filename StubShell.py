@@ -16,15 +16,14 @@ PROMPT = "test_shell> "
 # instead of passing them down a long chain
 
 
-# Executable Commands
+# Executable Base Classes
 class Executable(object):
     """Base class for all executable commands in the shell
     """
-    def __init__(self, shell_protocol, cmd, reactor):
+    def __init__(self, cmd, shell_protocol):
         self.shell = shell_protocol
         self.cmd = cmd['name']
         self.args = cmd['args']
-        self.reactor = reactor
 
     def executor(self):
         d = defer.Deferred()
@@ -39,13 +38,13 @@ class Executable(object):
         ret = self.main()
         self.shell.resume(ret)
 
-
     def end(self, ret):
         """returns to the Shell's cmd_stack execution loop
         """
         self.shell.resume(ret)
 
 
+# Builtin Executables
 class exe_exit(Executable):
     """Every shell needs a basic exit command
     """
@@ -75,6 +74,9 @@ class exe_wait(Executable):
     will be refactored to use as a superclass for blockers
     """
     name = 'wait'
+    def __init__(self, cmd, shell_protocol, reactor=reactor):
+        super(exe_wait, self).__init__(cmd, shell_protocol)
+        self.reactor = reactor
 
     def run(self):
         #print "wait reactor is: "
@@ -219,9 +221,9 @@ class ShellProtocol(recvline.HistoricRecvLine):
         """
         for exe in self.executables:
             if re.match(exe.name, cmd['name']):
-                return exe(self, cmd, reactor)
+                return exe(cmd, self)
 
-        return exe_command_not_found(self, cmd, reactor)
+        return exe_command_not_found(cmd, self)
 
     def writeln(self, data):
         self.terminal.write(data)
@@ -232,49 +234,46 @@ class ShellProtocol(recvline.HistoricRecvLine):
         pass
 
 
-# Functions for building and running the Server
-def get_rsa_keys(keypath="keys"):
-    pubkey = os.path.join(keypath, "public.key")
-    privkey = os.path.join(keypath, "private.key")
-
-    publicKeyString = file(pubkey).read()
-    privateKeyString = file(privkey).read()
-    return publicKeyString, privateKeyString
-
-
-def get_ssh_factory(executables, keypath="./keys", **users):
+class StubShellServer(factory.SSHFactory):
     """Factory (twisted.conch.ssh.factory.SSHFactory)
     buildProtocol method creates Protocol instances
     for each new connection
     """
-    # create generic SSHFactory instance
-    ssh_factory = factory.SSHFactory()
-    # create factroy authentication portal using SSHRealm
-    ssh_factory.portal = portal.Portal(SSHRealm(executables))
-    ssh_factory.portal.registerChecker(
-        checkers.InMemoryUsernamePasswordDatabaseDontUse(**users)
-    )
-    # Set RSA Credentials
-    pubkey, privkey = get_rsa_keys(keypath)
-    ssh_factory.publicKeys = {
-        'ssh-rsa': keys.Key.fromString(data=pubkey)
-    }
-    ssh_factory.privateKeys = {
-        'ssh-rsa': keys.Key.fromString(data=privkey)
-    }
-    ssh_factory.services = {
-        'ssh-userauth': userauth.SSHUserAuthServer,
-        'ssh-connection': connection.SSHConnection
-    }
+    def __init__(self, executables, keypath="./keys", **users):
+        # create factroy authentication portal using SSHRealm
+        self.portal = portal.Portal(SSHRealm(executables))
+        self.portal.registerChecker(
+            checkers.InMemoryUsernamePasswordDatabaseDontUse(**users)
+        )
+        # Set RSA Credentials
+        self.keypath = keypath
+        self.set_rsa_keys()
 
-    return ssh_factory
+        self.services = {
+            'ssh-userauth': userauth.SSHUserAuthServer,
+            'ssh-connection': connection.SSHConnection
+        }
 
+    def set_rsa_keys(self):
+        pub_key_file = os.path.join(self.keypath, "public.key")
+        priv_key_file = os.path.join(self.keypath, "private.key")
+
+        pub_key_string = file(pub_key_file).read()
+        priv_key_string = file(priv_key_file).read()
+
+        self.publicKeys = {
+            'ssh-rsa': keys.Key.fromString(data=pub_key_string)
+        }
+        self.privateKeys = {
+            'ssh-rsa': keys.Key.fromString(data=priv_key_string)
+        }
+        
 
 if __name__ == "__main__":
     log.startLogging(sys.stderr)
     users = {'usr': 'pas'}
     EXECUTABLES = [exe_wait]
 
-    ssh_factory = get_ssh_factory(EXECUTABLES, **users)
-    reactor.listenTCP(9999, ssh_factory)
+    ss_server = StubShellServer(EXECUTABLES, **users)
+    reactor.listenTCP(9999, ss_server)
     reactor.run()

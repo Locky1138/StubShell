@@ -61,36 +61,12 @@ class exe_rexe(StubShell.Executable):
         return 0
 
 
-class exe_test_wait(StubShell.Executable):
-    """Temporarily Static executable
-    will be refactored to use as a superclass for blockers
-    """
-    name = 'wait'
-
-    def run(self):
-        #self.shell.writeln("BEGIN")
-        self.loopy(int(self.args[0]))
-        return 0
-
-    def loopy(self, i):
-        d = defer.Deferred()
-        if i > 0:
-            self.shell.writeln("waiting...")
-            d.addCallback(self.loopy)
-            self.reactor.callLater(1, d.callback, i-1)
-        else:
-            #self.shell.writeln("DONE!")
-            #d.addCallback(self.end)
-            d.callback(i)
-
-
-
 EXECUTABLES = [exe_test_command, exe_test_args, exe_rexe]
 KEYPATH = '../keys'
 
 def _build_factory():
     users = {'usr':'pas'}
-    return StubShell.get_ssh_factory(EXECUTABLES, keypath=KEYPATH, **users)
+    return StubShell.StubShellServer(EXECUTABLES, keypath=KEYPATH, **users)
 
 def get_shell_protocol():
     sp = StubShell.ShellProtocol('usr', EXECUTABLES)
@@ -204,7 +180,7 @@ class ShellExecutableTest(unittest.TestCase):
     def test_Executable_can_call_containing_shell(self):
         sp = get_shell_protocol()
         cmd = {'name':'test', 'args':[]}
-        exe = StubShell.Executable(sp, cmd, reactor)
+        exe = StubShell.Executable(cmd, sp)
         exe.shell.writeln("pass")
         self.assertEqual(sp.terminal.value(), "pass\n")
 
@@ -220,8 +196,8 @@ class ShellExecutableTest(unittest.TestCase):
         sp = get_shell_protocol()
         clock = task.Clock()
         exe = StubShell.exe_wait(
-            sp,
             {'name':'wait', 'args':'3'},
+            sp,
             clock
         )
 
