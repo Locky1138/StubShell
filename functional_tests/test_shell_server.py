@@ -35,20 +35,38 @@ class StubShellServerTest(unittest.TestCase):
             "StubShell: not_a_command: command not found\r\n"
         )
 
+    def test_echo_off(self):
+        self.shell.sendline("stty -echo")
+        self.shell.expect(PROMPT)
+        self.shell.sendline("not a command")
+        self.assertEqual(
+            self.shell.before,
+            #note that the command we typed is missing
+            "StubShell: not_a_command: command not found\r\n"
+        )
+
     def test_slow_executable(self):
-        # Still dont know a good way to test for the delays between outut
-        # if we run an executable that prints output slowly
+        # delay is checked by our unit tests
         self.shell.sendline('wait 3')
         self.shell.expect(PROMPT)
         self.assertEqual(
             self.shell.before,
-            "wait 3\r\n" +
-            "waiting...\r\n" * 3
+            "wait 3\r\n"
+            "Begin Waiting:\r\n" +
+            "waiting...\r\n" * 3 +
+            "Waiting Complete\r\n"
         )
         #expect("waiting...", timeout=2)
         #with assertError(pexpect timeout):
         #    expect(PROMPT, timeout=2)
 
+    def test_set_ps1_commands(self):
+        self.shell.sendline("PS1='__special:123__>'")
+        self.shell.expect('__special:123__>')
+        self.assertEqual(
+            self.shell.before,
+            "PS1='__special:123__>'"
+        )
 
 
 if __name__ == '__main__':
