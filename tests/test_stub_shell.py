@@ -1,104 +1,34 @@
 # Run Me with 'trial tests/test_stub_shell.py'
+import base
 from twisted.trial import unittest
 import StubShell
-from twisted.test.proto_helpers import StringTransport
 
-from twisted.conch.ssh import factory
 from twisted.cred import portal, checkers
 from twisted.internet import reactor, task, defer
 
 
-PROMPT = StubShell.PROMPT
+PROMPT = base.PROMPT
 
 
-class FakeTerminal(StringTransport):
-
-    def __init__(self):
-        StringTransport.__init__(self)
-
-    # insults.RecvLine
-    def LEFT_ARROW(self): pass
-    def RIGHT_ARROW(self): pass
-    def TAB(self): pass
-    def BACKSPACE(self): pass
-    def DELETE(self): pass
-    def INSERT(self): pass  
-    def HOME(self): pass
-    def END(self): pass
-    # insults.HistoricRecvLine
-    def UP_ARROW(self): pass
-    def DOWN_ARROW(self): pass
-    def reset(self): pass
-
-    def setModes(self, mode):
-        self.mode = mode
-
-    def nextLine(self):
-        self.write('\n')
-
-
-class exe_test_command(StubShell.Executable):
-    name = 'test_command'
-
-    def main(self):
-        self.shell.writeln("pass!")
-        return 0
-
-
-class exe_test_args(StubShell.Executable):
-    name = 'test_args'
-
-    def main(self):
-        self.shell.writeln("my args are: %s" % ", ".join(self.args))
-        return 0
-
-
-class exe_rexe(StubShell.Executable):
-    name = 'rexe.*'
-
-    def main(self):
-        self.shell.writeln("%s executed rexe" % self.cmd)
-        return 0
-
-
-EXECUTABLES = [exe_test_command, exe_test_args, exe_rexe]
-KEYPATH = '../keys'
-
-def _build_factory():
-    users = {'usr':'pas'}
-    return StubShell.StubShellServer(EXECUTABLES, keypath=KEYPATH, **users)
-
-def get_shell_protocol():
-    sp = StubShell.ShellProtocol('usr', EXECUTABLES)
-    sp.terminal = FakeTerminal()
-    return sp
-
-
-# BEGIN TESTS
 class ShellProtocolTest(unittest.TestCase):
     """Use Fake conch.insults.insults.ITerminalTransport
     """
 
-    def get_shell_protocol(self):
-        sp = StubShell.ShellProtocol('usr', EXECUTABLES)
-        sp.terminal = FakeTerminal()
-        return sp
-
     def test_connection_made(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         sp.connectionMade()
         out = sp.terminal.value()
-        expect_out = StubShell.GREETING + "\n" + StubShell.PROMPT
+        expect_out = StubShell.GREETING + "\n" + PROMPT
         self.assertEqual(out, expect_out)
 
     def test_write_line(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         sp.writeln("some output")
         out = sp.terminal.value()
         self.assertEqual(out, 'some output\n')
 
     def test_lineReceived_without_args(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         # disable running commands in the stack, so we can inspect it
         sp.run_cmd_stack = lambda: None
         sp.lineReceived("command")
@@ -107,7 +37,7 @@ class ShellProtocolTest(unittest.TestCase):
         self.assertEqual(name, 'command')
 
     def test_lineReceived_with_args(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         sp.run_cmd_stack = lambda: None 
         sp.lineReceived("command arg0 arg1")
         command = sp.cmd_stack[0]
@@ -118,7 +48,7 @@ class ShellProtocolTest(unittest.TestCase):
         self.assertEqual(args[1], 'arg1')
 
     def test_multiple_command_line(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         sp.run_cmd_stack = lambda: None
         sp.lineReceived("command0 arg0; command1 arg1.0 arg1.1")
         cmd2 = sp.cmd_stack[0]
@@ -129,24 +59,24 @@ class ShellProtocolTest(unittest.TestCase):
         self.assertEqual(args[1], 'arg1.1')
 
     def test_exe_exit_in_shell_executables_by_default(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         self.assertIn(StubShell.exe_exit, sp.executables)
 
     def test_get_executable(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         cmd = {'name':'test_command', 'args':['arg0']}
         exe = sp.get_executable(cmd)
-        self.assertIsInstance(exe, exe_test_command)
+        self.assertIsInstance(exe, base.exe_test_command)
         self.assertEqual(exe.args[0], "arg0")
 
     def test_get_executable_regex(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         cmd = {'name':'rexe_something', 'args':['arg0']}
         exe = sp.get_executable(cmd)
-        self.assertIsInstance(exe, exe_rexe)
+        self.assertIsInstance(exe, base.exe_rexe)
         
     def test_get_command_returns_command_not_found(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         sp.lineReceived("not_a_command arg0")
         #sp.get_executable(sp.cmd_stack.pop())
         self.assertEqual(
@@ -157,7 +87,7 @@ class ShellProtocolTest(unittest.TestCase):
         self.assertEqual(sp.RET, 127)
 
     def test_execute_multiple_commands(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         sp.lineReceived(
             "test_command; "
             "test_args a1 a2; "
@@ -178,14 +108,14 @@ class ShellExecutableTest(unittest.TestCase):
     """
 
     def test_Executable_can_call_containing_shell(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         cmd = {'name':'test', 'args':[]}
         exe = StubShell.Executable(cmd, sp)
         exe.shell.writeln("pass")
         self.assertEqual(sp.terminal.value(), "pass\n")
 
     def test_exit_command_drops_connection(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         sp.lineReceived("exit")
         self.assertTrue(
             sp.terminal.disconnecting,
@@ -193,7 +123,7 @@ class ShellExecutableTest(unittest.TestCase):
         )
 
     def test_waiting_executable(self):
-        sp = get_shell_protocol()
+        sp = base.get_shell_protocol()
         clock = task.Clock()
         exe = StubShell.exe_wait(
             {'name':'wait', 'args':['3']},
@@ -221,14 +151,15 @@ class SSHRealmTest(unittest.TestCase):
     The Portal manages commnication between various authentication components
     including Realm, Avatar, and Credential Checkers
     """
+    EXECUTABLES = []
 
     def test_create_ssh_factory_portal(self):
-        ssh_factory = _build_factory()
-        ssh_factory.portal = portal.Portal(StubShell.SSHRealm(EXECUTABLES))
+        ssh_factory = base.build_factory()
+        ssh_factory.portal = portal.Portal(StubShell.SSHRealm(self.EXECUTABLES))
 
     def test_register_checkers(self):
-        ssh_factory = _build_factory()
-        ssh_factory.portal = portal.Portal(StubShell.SSHRealm(EXECUTABLES))
+        ssh_factory = base.build_factory()
+        ssh_factory.portal = portal.Portal(StubShell.SSHRealm(self.EXECUTABLES))
        
         users = {'usr':'pas'}
         ssh_factory.portal.registerChecker(
@@ -242,11 +173,13 @@ class ShellFactoryTest(unittest.TestCase):
     """
 
     def test_get_shell_factory_returns_SSHFactory(self):
-        shell_factory = _build_factory()
+        from twisted.conch.ssh import factory
+
+        shell_factory = base.build_factory()
         self.assertIsInstance(shell_factory, factory.SSHFactory)
 
     def test_run_server_using_shell_factory(self):
-        shell_factory = _build_factory()
+        shell_factory = base.build_factory()
         listener = reactor.listenTCP(9998, shell_factory)
         listener.stopListening()
 
