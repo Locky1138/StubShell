@@ -51,7 +51,7 @@ class exe_test_args(Executable):
 
 
 class exe_rexe(Executable):
-    name = 'rexe.*'
+    name = 'rexe(.*)'
 
     def main(self):
         self.shell.writeln("%s executed rexe" % self.cmd)

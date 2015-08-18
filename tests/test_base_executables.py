@@ -31,8 +31,9 @@ class BaseExecutablesTest(unittest.TestCase):
         clock = task.Clock()
         exe = exe_timed(
             {'name': 'wait', 'args':[]},
+            {}, # standin for match
             sp,
-            clock
+            reactor=clock
         )
 
         exe.run()

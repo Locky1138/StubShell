@@ -1,6 +1,6 @@
 import StubShell
 import sys
-from BaseExecutables import Executable, TimedExe
+from BaseExecutables import get_executables 
 
 from twisted.python import log
 from twisted.internet import reactor
@@ -8,7 +8,7 @@ from twisted.internet import reactor
 
 def main():
     users = {'usr': 'pas'}
-    executables = [exe_wait]
+    executables = get_executables('executables/special_commands.py')
 
     log.startLogging(sys.stderr)
 

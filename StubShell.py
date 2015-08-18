@@ -76,6 +76,8 @@ class ShellProtocol(recvline.HistoricRecvLine):
     """
     def __init__(self, user, executables=[]):
         self.user = user
+        self.prompt = PROMPT
+        self.echo_on = True
         self.mode = ''
         # FILO Stack contains instances of executable commands
         self.cmd_stack = []
@@ -89,8 +91,19 @@ class ShellProtocol(recvline.HistoricRecvLine):
         self.terminal.nextLine()
         self.showPrompt()
 
+    def characterReceived(self, ch, moreCharactersComing):
+        """overriden to disable write(ch) if echo_on == False
+        """
+        if self.mode == 'insert':
+            self.lineBuffer.insert(self.lineBufferIndex, ch)
+        else:
+            self.lineBuffer[self.lineBufferIndex:self.lineBufferIndex+1] = [ch]
+        self.lineBufferIndex += 1
+        if self.echo_on:
+           self.terminal.write(ch)
+
     def showPrompt(self):
-        self.terminal.write(PROMPT)
+        self.terminal.write(self.prompt)
 
     def lineReceived(self, lines):
         """This is the Entry point into the Shell's executioner
@@ -140,10 +153,11 @@ class ShellProtocol(recvline.HistoricRecvLine):
         """search for an executable that matches the command name
         """
         for exe in self.executables:
-            if re.match(exe.name, cmd['name']):
-                return exe(cmd, self)
+            match = re.match(exe.name, cmd['name'])
+            if match:
+                return exe(cmd, match, self)
 
-        return exe_command_not_found(cmd, self)
+        return exe_command_not_found(cmd, match, self)
 
     def writeln(self, data):
         self.terminal.write(data)

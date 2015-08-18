@@ -25,10 +25,11 @@ def get_executables(cfg_file):
 class Executable(object):
     """Base class for all executable commands in the shell
     """
-    def __init__(self, cmd, shell_protocol):
+    def __init__(self, cmd, match, shell_protocol):
         self.shell = shell_protocol
         self.cmd = cmd['name']
         self.args = cmd['args']
+        self.match = match
 
     def executor(self):
         """experiment:
@@ -64,10 +65,10 @@ class TimedExe(Executable):
     delay = 1
     ret = 0   
 
-    def __init__(self, cmd, shell_protocol, reactor=reactor):
+    def __init__(self, cmd, match, shell_protocol, reactor=reactor):
         """We have to variabalize the reactor for testing with trial
         """
-        super(TimedExe, self).__init__(cmd, shell_protocol)
+        super(TimedExe, self).__init__(cmd, match, shell_protocol)
         self.reactor = reactor
 
     def run(self):

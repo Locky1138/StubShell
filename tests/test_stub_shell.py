@@ -14,18 +14,19 @@ PROMPT = base.PROMPT
 class ShellProtocolTest(unittest.TestCase):
     """Use Fake conch.insults.insults.ITerminalTransport
     """
+    def setUp(self):
+        self.sp = base.get_shell_protocol()
+
 
     def test_connection_made(self):
-        sp = base.get_shell_protocol()
-        sp.connectionMade()
-        out = sp.terminal.value()
+        self.sp.connectionMade()
+        out = self.sp.terminal.value()
         expect_out = StubShell.GREETING + "\n" + PROMPT
         self.assertEqual(out, expect_out)
 
     def test_write_line(self):
-        sp = base.get_shell_protocol()
-        sp.writeln("some output")
-        out = sp.terminal.value()
+        self.sp.writeln("some output")
+        out = self.sp.terminal.value()
         self.assertEqual(out, 'some output\n')
 
     def test_lineReceived_without_args(self):
@@ -75,7 +76,13 @@ class ShellProtocolTest(unittest.TestCase):
         cmd = {'name':'rexe_something', 'args':['arg0']}
         exe = sp.get_executable(cmd)
         self.assertIsInstance(exe, base.exe_rexe)
-        
+
+    def test_get_executable_regex_captures(self):
+        sp = base.get_shell_protocol()
+        cmd = {'name': 'rexe123', 'args':[]}
+        exe = sp.get_executable(cmd)
+        self.assertEqual(exe.match.group(1), '123') 
+       
     def test_get_command_returns_command_not_found(self):
         sp = base.get_shell_protocol()
         sp.lineReceived("not_a_command arg0")
@@ -111,7 +118,7 @@ class ShellExecutableTest(unittest.TestCase):
     def test_Executable_can_call_containing_shell(self):
         sp = base.get_shell_protocol()
         cmd = {'name':'test', 'args':[]}
-        exe = Executable(cmd, sp)
+        exe = Executable(cmd, {}, sp)
         exe.shell.writeln("pass")
         self.assertEqual(sp.terminal.value(), "pass\n")
 

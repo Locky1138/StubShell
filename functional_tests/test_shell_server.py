@@ -31,18 +31,19 @@ class StubShellServerTest(unittest.TestCase):
         self.shell.expect(PROMPT)
         self.assertEqual(
             self.shell.before,
-            "not_a_command bad args\r\n"
-            "StubShell: not_a_command: command not found\r\n"
+            "not_a_command bad args"
+            "\r\nStubShell: not_a_command: command not found\r\n"
         )
 
     def test_echo_off(self):
         self.shell.sendline("stty -echo")
         self.shell.expect(PROMPT)
-        self.shell.sendline("not a command")
+        self.shell.sendline("not_a_command")
+        self.shell.expect(PROMPT)
         self.assertEqual(
             self.shell.before,
             #note that the command we typed is missing
-            "StubShell: not_a_command: command not found\r\n"
+            "\r\nStubShell: not_a_command: command not found\r\n"
         )
 
     def test_slow_executable(self):
