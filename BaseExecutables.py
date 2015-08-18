@@ -1,6 +1,27 @@
 from twisted.internet import reactor, defer
+from twisted.python import log
+import imp
+import os
 
+def get_executables(cfg_file):
+    """This is some python magic that gets all of the executable
+    classes out of a given config.py file
+    """
+    if not os.path.isfile(cfg_file):
+        print "The file %s does not exist!" % cfg_file
 
+    cfg_module = imp.load_source('cfg_module', cfg_file)
+    #conf_module = __import__(config_file)
+
+    md = cfg_module.__dict__
+    return [
+        md[k] for k in md if (
+            isinstance(md[k], type) and md[k].__module__ == cfg_module.__name__
+        )
+    ]
+    
+
+# Template Classes
 class Executable(object):
     """Base class for all executable commands in the shell
     """
@@ -78,3 +99,29 @@ class TimedExe(Executable):
     def print_final_output(self, ret):
         self.shell.writeln(self.final_print)
         return ret
+
+
+# Executable Classes
+# note that they have name attributes!
+class exe_exit(Executable):
+    """Every shell needs a basic exit command
+    """
+    name = 'exit'
+
+    def main(self):
+        log.msg('run exit()')
+        self.shell.terminal.loseConnection()
+        return 0
+
+
+class exe_command_not_found(Executable):
+    """an executable to handle any un-expected commands
+    """
+    name = 'command_not_found'
+
+    def main(self):
+        log.err('command not found: %s' % self.cmd)
+        self.shell.writeln(
+            "StubShell: %s: command not found" % self.cmd
+        )
+        return 127

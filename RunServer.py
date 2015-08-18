@@ -6,18 +6,6 @@ from twisted.python import log
 from twisted.internet import reactor
 
 
-class exe_wait(TimedExe):
-    name = 'wait'
-    first_print = "Begin Waiting:"
-    final_print = "Waiting Complete"
-    
-    def __init__(self, cmd, shell_protocol):
-        super(exe_wait, self).__init__(cmd, shell_protocol)
-        self.count = int(self.args[0])
-        
-
-
-
 def main():
     users = {'usr': 'pas'}
     executables = [exe_wait]

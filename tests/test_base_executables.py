@@ -4,18 +4,29 @@ import BaseExecutables
 import base
 from twisted.internet import task
 
-
 PROMPT = base.PROMPT
-
-class exe_timed(BaseExecutables.TimedExe):
-    name = "wait"
-    first_print = "Begin Waiting:"
-    final_print = "Waiting Complete"
 
 
 class BaseExecutablesTest(unittest.TestCase):
 
+    def test_get_executables_from_file(self):
+        exes = BaseExecutables.get_executables('../tests/exe_config.py')
+        for exe in exes:
+            self.assertTrue(
+                issubclass(exe, 
+                    (BaseExecutables.Executable, 
+                    BaseExecutables.TimedExe)
+                )
+            )
+
     def test_timed_executable(self):
+
+        class exe_timed(BaseExecutables.TimedExe):
+            name = "wait"
+            first_print = "Begin Waiting:"
+            final_print = "Waiting Complete"
+
+
         sp = base.get_shell_protocol()
         clock = task.Clock()
         exe = exe_timed(

@@ -2,6 +2,7 @@
 import base
 from twisted.trial import unittest
 import StubShell
+from BaseExecutables import Executable
 
 from twisted.cred import portal, checkers
 from twisted.internet import reactor, task, defer
@@ -110,7 +111,7 @@ class ShellExecutableTest(unittest.TestCase):
     def test_Executable_can_call_containing_shell(self):
         sp = base.get_shell_protocol()
         cmd = {'name':'test', 'args':[]}
-        exe = StubShell.Executable(cmd, sp)
+        exe = Executable(cmd, sp)
         exe.shell.writeln("pass")
         self.assertEqual(sp.terminal.value(), "pass\n")
 

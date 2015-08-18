@@ -1,6 +1,7 @@
 # Run Me with 'trial tests/test_stub_shell.py'
 import StubShell
 from twisted.test.proto_helpers import StringTransport
+from BaseExecutables import Executable, TimedExe
 
 
 PROMPT = StubShell.PROMPT
@@ -33,7 +34,7 @@ class FakeTerminal(StringTransport):
 
 
 # Executables for testing
-class exe_test_command(StubShell.Executable):
+class exe_test_command(Executable):
     name = 'test_command'
 
     def main(self):
@@ -41,7 +42,7 @@ class exe_test_command(StubShell.Executable):
         return 0
 
 
-class exe_test_args(StubShell.Executable):
+class exe_test_args(Executable):
     name = 'test_args'
 
     def main(self):
@@ -49,12 +50,22 @@ class exe_test_args(StubShell.Executable):
         return 0
 
 
-class exe_rexe(StubShell.Executable):
+class exe_rexe(Executable):
     name = 'rexe.*'
 
     def main(self):
         self.shell.writeln("%s executed rexe" % self.cmd)
         return 0
+
+
+class exe_wait(TimedExe):
+    name = 'wait'
+    first_print = "Begin Waiting:"
+    final_print = "Waiting Complete"
+
+    def __init__(self, cmd, shell_protocol):
+        super(exe_wait, self).__init__(cmd, shell_protocol)
+        self.count = int(self.args[0])
 
 
 EXECUTABLES = [exe_test_command, exe_test_args, exe_rexe]

@@ -9,7 +9,7 @@ import re
 from twisted.internet import reactor, defer
 from twisted.python import log
 
-from BaseExecutables import Executable
+from BaseExecutables import exe_exit, exe_command_not_found
 
 # pulled directly by ShellProtocol, should be arguments?
 GREETING = "welcome to the Test Shell"
@@ -17,30 +17,6 @@ PROMPT = "test_shell> "
 # or maybe we should add EXECUTABLES here,
 # instead of passing them down a long chain
 
-
-# Builtin Executables
-class exe_exit(Executable):
-    """Every shell needs a basic exit command
-    """
-    name = 'exit'
-
-    def main(self):
-        log.msg('run exit()')
-        self.shell.terminal.loseConnection()
-        return 0
-
-
-class exe_command_not_found(Executable):
-    """an executable to handle any un-expected commands
-    """
-    name = 'command_not_found'
-
-    def main(self):
-        log.err('command not found: %s' % self.cmd)
-        self.shell.writeln(
-            "StubShell: %s: command not found" % self.cmd
-        )
-        return 127
 
 
 # SSH Shell Configuration
@@ -212,12 +188,3 @@ class StubShellServer(factory.SSHFactory):
             'ssh-rsa': keys.Key.fromString(data=priv_key_string)
         }
         
-
-if __name__ == "__main__":
-    log.startLogging(sys.stderr)
-    users = {'usr': 'pas'}
-    EXECUTABLES = [exe_wait]
-
-    ss_server = StubShellServer(EXECUTABLES, **users)
-    reactor.listenTCP(9999, ss_server)
-    reactor.run()
