@@ -62,12 +62,16 @@ class StubShellServerTest(unittest.TestCase):
         #    expect(PROMPT, timeout=2)
 
     def test_set_ps1_commands(self):
+        '''Note Pexpect sets a special prompt that it uses
+        by changing it we are breaking its ability to check
+        shell.before, so we just confirm that we can now expect
+        the new prompt.
+        '''
         self.shell.sendline("PS1='__special:123__>'")
         self.shell.expect('__special:123__>')
-        self.assertEqual(
-            self.shell.before,
-            "PS1='__special:123__>'"
-        )
+        self.shell.sendline("not_a_command")
+        self.shell.expect('__special:123__>')
+        
 
 
 if __name__ == '__main__':

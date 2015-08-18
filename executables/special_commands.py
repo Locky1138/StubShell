@@ -18,9 +18,9 @@ class exe_stty(Executable):
 class exe_ps1(Executable):
     """Allows us to set the prompt
     """
-    name = 'PS1=(.+)'
+    name = "PS1='(.+)'"
 
     def main(self):
-        seed = self.shell.cmd_match.group(1)
+        seed = self.match.group(1)
         self.shell.prompt = seed
         print "Prompt set to %s" % seed
