@@ -6,9 +6,16 @@ from twisted.python import log
 from twisted.internet import reactor
 
 
+
+
 def main():
     users = {'usr': 'pas'}
     executables = get_executables('executables/special_commands.py')
+
+    #Ugly patch to get FT working, should be loded with -c for FT's
+    from tests.exe_config import exe_wait
+    executables.append(exe_wait)
+
 
     log.startLogging(sys.stderr)
 

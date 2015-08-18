@@ -32,7 +32,7 @@ class exe_wait(TimedExe):
     first_print = "Begin Waiting:"
     final_print = "Waiting Complete"
 
-    def __init__(self, cmd, shell_protocol):
-        super(exe_wait, self).__init__(cmd, shell_protocol)
+    def __init__(self, cmd, match, shell_protocol):
+        super(exe_wait, self).__init__(cmd, match, shell_protocol)
         self.count = int(self.args[0])
 
