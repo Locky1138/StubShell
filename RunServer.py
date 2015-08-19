@@ -1,29 +1,44 @@
-#! /home/lbernard/miniconda3/envs/IPtomato/bin/python 
-
 import StubShell
-import sys
 from BaseExecutables import get_executables 
 
+import os
+import sys
+import argparse
 from twisted.python import log
 from twisted.internet import reactor
 
 
+USERS = {'usr': 'pas'}
+
+p = argparse.ArgumentParser(
+    description='Supply StubShell with a .py file that defines your executable classes',
+    usage='StubShell.py -c comand_config_file'
+    )
+p.add_argument('-c','--config',
+    help = 'config file(s)',
+    dest = 'config_modules',
+    nargs='+'
+    )
+args = p.parse_args()
+
+print "loading executables from:"
+print args.config_modules
 
 
-def main():
-    users = {'usr': 'pas'}
-    executables = get_executables('executables/special_commands.py')
+EXES = []
+for cfg in args.config_modules:
+    if not os.path.isfile(cfg):
+        p.error('The file %s does not exist!' % cfg)
 
-    #Ugly patch to get FT working, should be loded with -c for FT's
-    from tests.exe_config import exe_wait
-    executables.append(exe_wait)
+    EXES += get_executables(cfg)
 
 
+try:
     log.startLogging(sys.stderr)
 
     ss_server = StubShell.StubShellServer(
-        executables,
-        **users
+        EXES,
+        **USERS
     )
     SERV = reactor.listenTCP(
         9999, 
@@ -31,12 +46,7 @@ def main():
         interface='0.0.0.0')
 
     reactor.run()
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print "User interrupted"
-        SERV.stopListening()
-        sys.exit(1)
+except KeyboardInterrupt:
+    print "User interrupted"
+    SERV.stopListening()
+    sys.exit(1)
