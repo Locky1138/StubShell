@@ -46,6 +46,20 @@ class StubShellServerTest(unittest.TestCase):
             "\r\nStubShell: not_a_command: command not found\r\n"
         )
 
+    def test_tty_reset_after_disconnect(self):
+        self.shell.sendline("stty -echo")
+        self.shell.expect(PROMPT)
+        self.tearDown()
+
+        self.setUp()
+        self.shell.sendline("not_a_command")
+        self.shell.expect(PROMPT)
+        self.assertEqual(
+            self.shell.before,
+            "not_a_command"
+            "\r\nStubShell: not_a_command: command not found\r\n"
+        )
+
     def test_slow_executable(self):
         # delay is checked by our unit tests
         self.shell.sendline('wait 3')
@@ -57,9 +71,6 @@ class StubShellServerTest(unittest.TestCase):
             "waiting...\r\n" * 3 +
             "Waiting Complete\r\n"
         )
-        #expect("waiting...", timeout=2)
-        #with assertError(pexpect timeout):
-        #    expect(PROMPT, timeout=2)
 
     def test_set_ps1_commands(self):
         '''Note Pexpect sets a special prompt that it uses
@@ -71,8 +82,5 @@ class StubShellServerTest(unittest.TestCase):
         self.shell.expect('__special:123__>')
         self.shell.sendline("not_a_command")
         self.shell.expect('__special:123__>')
+
         
-
-
-if __name__ == '__main__':
-    unittest.main()
