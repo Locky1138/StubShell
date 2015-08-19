@@ -77,6 +77,7 @@ class ShellProtocol(recvline.HistoricRecvLine):
     def __init__(self, user, executables=[]):
         self.user = user
         self.prompt = PROMPT
+        self.RET = 0
         self.echo_on = True
         self.mode = ''
         # FILO Stack contains instances of executable commands
@@ -128,7 +129,7 @@ class ShellProtocol(recvline.HistoricRecvLine):
         # now fire .run() on the command, to start it executing
         # It should execute the next command in the stack when complete
         # then return to waiting for lineReceived again
-        self.resume(None)
+        self.resume(self.RET)
 
     def run_cmd_stack(self):
         """what if we have exe.run() return a diferred

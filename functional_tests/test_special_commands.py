@@ -25,6 +25,42 @@ class SpecialCommandsTest(unittest.TestCase):
         self.shell.expect(pexpect.EOF)
         self.shell.close
 
+    def test_echo_off(self):
+        # disable echo of input
+        self.shell.sendline("stty -echo")
+        self.shell.expect(PROMPT)
+        self.shell.sendline("not_a_command")
+        self.shell.expect(PROMPT)
+        self.assertEqual(
+            self.shell.before,
+            #note that the command we typed is missing
+            "\r\nStubShell: not_a_command: command not found\r\n"
+        )
+
+        # Confirm default behavior after reconnecting
+        self.tearDown()
+        self.setUp()
+
+        self.shell.sendline("not_a_command")
+        self.shell.expect(PROMPT)
+        self.assertEqual(
+            self.shell.before,
+            "not_a_command"
+            "\r\nStubShell: not_a_command: command not found\r\n"
+        )
+    
+    def test_set_ps1_commands(self):
+        '''Note Pexpect sets a special prompt that it uses
+        by changing it we are breaking its ability to check
+        shell.before, so we just confirm that we can now expect
+        the new prompt.
+        '''
+        self.shell.sendline("PS1='__special:123__>'")
+        self.shell.expect('__special:123__>')
+        self.shell.sendline("not_a_command")
+        self.shell.expect('__special:123__>')
+
+
     def test_echo_my_shell_is(self):
         self.shell.sendline('echo My shell is: 123 $0 123')
         self.shell.expect(PROMPT)
@@ -43,7 +79,7 @@ class SpecialCommandsTest(unittest.TestCase):
         )
         
     def test_echo_return_code(self):
-        cmd = 'echo _my_return_code: $? __'
+        cmd = "echo '_my_return_code: $? __'"
         self.shell.sendline(cmd)
         self.shell.expect(PROMPT)
         self.assertEqual(
@@ -53,7 +89,8 @@ class SpecialCommandsTest(unittest.TestCase):
         )
 
         # and after command_not_found we should see $? = 127
-        cmd = 'not_a_command'
+        self.shell.sendline("not_a_command")
+        self.shell.expect(PROMPT)
         self.shell.sendline(cmd)
         self.shell.expect(PROMPT)
         self.assertEqual(

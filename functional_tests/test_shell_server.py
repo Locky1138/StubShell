@@ -5,28 +5,8 @@ import unittest
 import pexpect
 from StubShell import PROMPT
 
-import subprocess
-from signal import SIGINT
 
-import time
-
-class FunctionalTest(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        print "setUpClass WAS CALLED"
-        cls.proc = subprocess.Popen('RunServer.py')
-        time.sleep(1)
-        super(FunctionalTest, cls).setUpClass()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.proc.send_signal(SIGINT)
-        super(FunctionalTest, cls).tearDownClass()
-
-
-
-class StubShellServerTest(FunctionalTest):
+class StubShellServerTest(unittest.TestCase):
     """These FT's run against a TestServer running on the local host
     they will confirm login/out functionality
     and mostly test the basic commands available in the shell
@@ -57,31 +37,6 @@ class StubShellServerTest(FunctionalTest):
             "\r\nStubShell: not_a_command: command not found\r\n"
         )
 
-    def test_echo_off(self):
-        self.shell.sendline("stty -echo")
-        self.shell.expect(PROMPT)
-        self.shell.sendline("not_a_command")
-        self.shell.expect(PROMPT)
-        self.assertEqual(
-            self.shell.before,
-            #note that the command we typed is missing
-            "\r\nStubShell: not_a_command: command not found\r\n"
-        )
-
-    def test_tty_reset_after_disconnect(self):
-        self.shell.sendline("stty -echo")
-        self.shell.expect(PROMPT)
-        self.tearDown()
-
-        self.setUp()
-        self.shell.sendline("not_a_command")
-        self.shell.expect(PROMPT)
-        self.assertEqual(
-            self.shell.before,
-            "not_a_command"
-            "\r\nStubShell: not_a_command: command not found\r\n"
-        )
-
     def test_slow_executable(self):
         # delay is checked by our unit tests
         self.shell.sendline('wait 3')
@@ -93,16 +48,4 @@ class StubShellServerTest(FunctionalTest):
             "waiting...\r\n" * 3 +
             "Waiting Complete\r\n"
         )
-
-    def test_set_ps1_commands(self):
-        '''Note Pexpect sets a special prompt that it uses
-        by changing it we are breaking its ability to check
-        shell.before, so we just confirm that we can now expect
-        the new prompt.
-        '''
-        self.shell.sendline("PS1='__special:123__>'")
-        self.shell.expect('__special:123__>')
-        self.shell.sendline("not_a_command")
-        self.shell.expect('__special:123__>')
-
 
