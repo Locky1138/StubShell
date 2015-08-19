@@ -99,4 +99,12 @@ class SpecialCommandsTest(unittest.TestCase):
             "_my_return_code: 127 __\r\n"
         )
 
+    def test_ps2_command(self):
+        cmd = "PS2=''"
+        self.shell.sendline(cmd)
+        self.shell.expect(PROMPT)
+        self.assertEqual(
+            self.shell.before,
+            cmd + "\r\n"
+        )
 

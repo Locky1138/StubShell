@@ -29,6 +29,17 @@ class exe_ps1(Executable):
         print "Prompt set to %s" % seed
         return 0
 
+
+class exe_ps2(Executable):
+    """dummy command, does nothing
+    """
+    name = "PS2="
+
+    def main(self):
+        print "Set PS2=''"
+        return 0
+
+
 class exe_echo(Executable):
     name = 'echo'
 
