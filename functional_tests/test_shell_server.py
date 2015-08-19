@@ -1,10 +1,32 @@
+# first start the server with
+# RunServer.py -c tests/exe_config.py
 # Run Me with 'trial functional_tests.test_shell_server.py'
 import unittest
 import pexpect
 from StubShell import PROMPT
 
+import subprocess
+from signal import SIGINT
 
-class StubShellServerTest(unittest.TestCase):
+import time
+
+class FunctionalTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        print "setUpClass WAS CALLED"
+        cls.proc = subprocess.Popen('RunServer.py')
+        time.sleep(1)
+        super(FunctionalTest, cls).setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.proc.send_signal(SIGINT)
+        super(FunctionalTest, cls).tearDownClass()
+
+
+
+class StubShellServerTest(FunctionalTest):
     """These FT's run against a TestServer running on the local host
     they will confirm login/out functionality
     and mostly test the basic commands available in the shell
@@ -83,4 +105,4 @@ class StubShellServerTest(unittest.TestCase):
         self.shell.sendline("not_a_command")
         self.shell.expect('__special:123__>')
 
-        
+

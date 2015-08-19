@@ -1,3 +1,5 @@
+#! /home/lbernard/miniconda3/envs/IPtomato/bin/python 
+
 import StubShell
 import sys
 from BaseExecutables import get_executables 
@@ -23,7 +25,7 @@ def main():
         executables,
         **users
     )
-    reactor.listenTCP(
+    SERV = reactor.listenTCP(
         9999, 
         ss_server,
         interface='0.0.0.0')
@@ -36,4 +38,5 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print "User interrupted"
+        SERV.stopListening()
         sys.exit(1)
