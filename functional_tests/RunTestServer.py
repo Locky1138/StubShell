@@ -1,4 +1,3 @@
-#! /home/lbernard/miniconda3/envs/IPtomato/bin/python 
 # Hacky Test Server for FT's
 # Run with: python -m functional_tests.RunTestServer
 
