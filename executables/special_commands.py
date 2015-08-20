@@ -50,7 +50,6 @@ class exe_echo(Executable):
         return 1
 
     def main(self):
-        print("COMMAND: %s %s" % (self.cmd, self.args))
         if (len(self.args) == 6
             and self.args[0] == "My"
             and self.args[1] == "shell"
@@ -58,29 +57,26 @@ class exe_echo(Executable):
             ):
             seed = self.args[3]
             if self.args[4] == "$0":
-                out = "My shell is: %s -bash %s" % (seed,seed)
-                self.shell.writeln(out)
-                print out
+                self.shell.writeln(
+                    "My shell is: %s -bash %s" % (seed,seed)
+                )
                 return 0
             elif self.args[4] == "$SHELL":
-                out = "My shell is: %s /bin/bash %s" % (seed,seed)
-                self.shell.writeln(out)
-                print out
+                self.shell.writeln(
+                    "My shell is: %s /bin/bash %s" % (seed,seed)
+                )
                 return 0
             else:
                 self.usage()
 
         elif re.match(
-            "'_\w+_return_code: \$\? __'",
+            '"_\w+_return_code: \$\? __"',
             " ".join(self.args)
             ):
-            print "RET = %s" % self.shell.RET 
-            out = "%s %d __" % (self.args[0][1:], self.shell.RET)
-            self.shell.writeln(out)
-            print out
+            self.shell.writeln(
+                "%s %d __" % (self.args[0][1:], self.shell.RET)
+            )
             return 0
 
         else:
-            print "args[0] = %s" % self.args[0]
-            print "args = %s" % self.args
             self.usage()

@@ -79,7 +79,7 @@ class SpecialCommandsTest(unittest.TestCase):
         )
         
     def test_echo_return_code(self):
-        cmd = "echo '_my_return_code: $? __'"
+        cmd = 'echo "_my_return_code: $? __"'
         self.shell.sendline(cmd)
         self.shell.expect(PROMPT)
         self.assertEqual(

@@ -44,7 +44,7 @@ class Executable(object):
         """main logic for the executable"""
 
     def run(self):
-        """what it do"""
+        print "INPUT: %s %s" % (self.cmd, self.args)
         ret = self.main()
         self.shell.resume(ret)
 
