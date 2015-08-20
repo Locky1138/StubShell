@@ -33,8 +33,9 @@ class SpecialCommandsTest(unittest.TestCase):
         self.shell.expect(PROMPT)
         self.assertEqual(
             self.shell.before,
-            #note that the command we typed is missing
-            "\r\nStubShell: not_a_command: command not found\r\n"
+            # note that the command we typed is missing
+            # and no return cariage
+            "StubShell: not_a_command: command not found\r\n"
         )
 
         # Confirm default behavior after reconnecting

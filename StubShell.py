@@ -104,6 +104,16 @@ class ShellProtocol(recvline.HistoricRecvLine):
         if self.echo_on:
            self.terminal.write(ch)
 
+    def handle_RETURN(self):
+        """Overridden to stop nextLine with stty -echo
+        """
+        line = ''.join(self.lineBuffer)
+        self.lineBuffer = []
+        self.lineBufferIndex = 0
+        if self.echo_on:
+            self.terminal.nextLine()
+        self.lineReceived(line)
+
     def showPrompt(self):
         self.terminal.write(self.prompt)
 
@@ -143,8 +153,23 @@ class ShellProtocol(recvline.HistoricRecvLine):
             self.run_cmd_list()
 
         elif len(self.cmd_stack) > 0:
-            self.executing = True
             self.cmd_list = self.cmd_stack.pop(0)
+
+            # REFACTOR: recomposing the received line
+            # just keep the full line in cmd_stack instead
+            # and decompose the commands here
+            if self.executing == True:
+                if self.echo_on:
+                    out = []
+                    for cmd in self.cmd_list:
+                        line = " ".join([cmd['name']]+cmd['args'])
+                        out.append(line)
+                    line = "; ".join(out)
+                    self.writeln(self.prompt + line)
+                else:
+                    self.showPrompt() 
+
+            self.executing = True
             self.run_cmd_list()
 
         else:

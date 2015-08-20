@@ -3,6 +3,7 @@
 # Run Me with 'trial functional_tests.test_shell_server.py'
 import unittest
 import pexpect
+import time
 from StubShell import PROMPT
 
 
@@ -50,12 +51,14 @@ class StubShellServerTest(unittest.TestCase):
         )
 
     def test_executions_block_until_complete(self):
+        self.shell.sendline('stty -echo')
+        self.shell.expect(PROMPT)
         self.shell.sendline('wait 3')
+        time.sleep(1)
         self.shell.sendline('test_command')
         self.shell.expect(PROMPT)
         self.assertEqual(
             self.shell.before,
-            "wait 3\r\n"
             "Begin Waiting:\r\n" +
             "waiting...\r\n" * 3 +
             "Waiting Complete\r\n"
@@ -63,6 +66,5 @@ class StubShellServerTest(unittest.TestCase):
         self.shell.expect(PROMPT)
         self.assertEqual(
             self.shell.before,
-            "test_commadn\r\n"
             "pass!\r\n"
         )
