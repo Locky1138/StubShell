@@ -110,8 +110,9 @@ class ShellProtocol(recvline.HistoricRecvLine):
         Split list of commands on ;
         split each command on spaces to
         create a dict representing the command name and args
-        and append them to the cmd_stack in reverse order (FILO)
+        and append them to the cmd_stack (FIFO)
         """
+        lines = lines.strip()
         if lines[-1] == ';':
             lines = lines[:-1]
 
@@ -123,31 +124,37 @@ class ShellProtocol(recvline.HistoricRecvLine):
                 cmd['args'] = words[1:]
             commands.append(cmd)
 
-        commands.reverse()
-        self.cmd_stack += commands
+        self.cmd_stack.append(commands)
         # now fire .run() on the command, to start it executing
         # It should execute the next command in the stack when complete
         # then return to waiting for lineReceived again
-        self.resume(self.RET)
+        #if not self.executing:
+        if not self.executing:
+            self.resume(self.RET)
 
-    def run_cmd_stack(self):
-        """what if we have exe.run() return a diferred
-        that must return before we allow the shell to resume?
-        that would allow us to take the return-code from the
-        exe's defer, and add it to the Shell's env for get_return calls
-        """
-        cmd = self.cmd_stack.pop()
-        exe = self.get_executable(cmd)
-        exe.run()
-    
     def resume(self, ret):
         """Used by Executables to signal their completion
         """
         self.RET = ret
         if len(self.cmd_stack) > 0:
-            self.run_cmd_stack()
+            self.executing = True
+            self.cmd_list = self.cmd_stack.pop(0)
         else:
-            self.showPrompt() 
+            self.executing = False
+            self.showPrompt()
+
+
+    def run_cmd_list(self):
+        """what if we have exe.run() return a diferred
+        that must return before we allow the shell to resume?
+        that would allow us to take the return-code from the
+        exe's defer, and add it to the Shell's env for get_return calls
+        """
+        cmd = self.cmd_list.pop(0)
+        exe = self.get_executable(cmd)
+        #self.executing = True
+        exe.run()
+    
 
     def get_executable(self, cmd):
         """search for an executable that matches the command name

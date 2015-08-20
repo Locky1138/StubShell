@@ -49,3 +49,20 @@ class StubShellServerTest(unittest.TestCase):
             "Waiting Complete\r\n"
         )
 
+    def test_executions_block_until_complete(self):
+        self.shell.sendline('wait 3')
+        self.shell.sendline('test_command')
+        self.shell.expect(PROMPT)
+        self.assertEqual(
+            self.shell.before,
+            "wait 3\r\n"
+            "Begin Waiting:\r\n" +
+            "waiting...\r\n" * 3 +
+            "Waiting Complete\r\n"
+        )
+        self.shell.expect(PROMPT)
+        self.assertEqual(
+            self.shell.before,
+            "test_commadn\r\n"
+            "pass!\r\n"
+        )

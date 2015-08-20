@@ -53,7 +53,7 @@ class ShellProtocolTest(unittest.TestCase):
         sp = base.get_shell_protocol()
         sp.run_cmd_stack = lambda: None
         sp.lineReceived("command0 arg0; command1 arg1.0 arg1.1")
-        cmd2 = sp.cmd_stack[0]
+        cmd2 = sp.cmd_stack[1]
         name = cmd2['name']
         args = cmd2['args']
         self.assertEqual(name, 'command1')
@@ -108,6 +108,30 @@ class ShellProtocolTest(unittest.TestCase):
             "rexeisawesome executed rexe\n"
             + PROMPT
         )
+
+    def test_received_new_input_while_running(self):
+        sp = base.get_shell_protocol()
+        sp.lineReceived(
+            "test_command; "
+            "test_args a1 a2; "
+        )
+        sp.lineReceived(
+            "test_command; "
+            "test_args b1 b2; "
+        )
+        self.assertEqual(
+            sp.terminal.value(),
+            "pass!\n"
+            "my args are: a1, a2\n"
+            + PROMPT
+        )
+        self.assertEqual(
+            sp.terminal.value(),
+            "pass!\n"
+            "my args are: b1, b2\n"
+            + PROMPT
+        )
+
 
 
 class ShellExecutableTest(unittest.TestCase):
