@@ -219,5 +219,4 @@ class StubShellServer(factory.SSHFactory):
         file(self.priv_key_file, 'w+b').write(
             keys.Key(rsa_key).toString('openssh')
         )
-        privateKeyString = keys.Key(rsaKey).toString('openssh')
         
