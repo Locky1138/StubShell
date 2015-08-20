@@ -77,10 +77,12 @@ class ShellProtocol(recvline.HistoricRecvLine):
         self.user = user
         self.prompt = PROMPT
         self.RET = 0
+        self.executing = False
         self.echo_on = True
         self.mode = ''
-        # FILO Stack contains instances of executable commands
+        # FIFO Stack contains instances of executable commands
         self.cmd_stack = []
+        self.cmd_list = []
         self.executables = executables
         self.executables += [exe_exit]
 
@@ -123,22 +125,28 @@ class ShellProtocol(recvline.HistoricRecvLine):
             if len(words) > 1:
                 cmd['args'] = words[1:]
             commands.append(cmd)
-
         self.cmd_stack.append(commands)
         # now fire .run() on the command, to start it executing
         # It should execute the next command in the stack when complete
         # then return to waiting for lineReceived again
-        #if not self.executing:
         if not self.executing:
             self.resume(self.RET)
 
     def resume(self, ret):
         """Used by Executables to signal their completion
+        Check the current cmd_list for pending cmds
+        Then check the cmd_stack for pending cmd(lists)
+        when the stack is empty prompt
         """
         self.RET = ret
-        if len(self.cmd_stack) > 0:
+        if len(self.cmd_list) > 0:
+            self.run_cmd_list()
+
+        elif len(self.cmd_stack) > 0:
             self.executing = True
             self.cmd_list = self.cmd_stack.pop(0)
+            self.run_cmd_list()
+
         else:
             self.executing = False
             self.showPrompt()
@@ -152,7 +160,6 @@ class ShellProtocol(recvline.HistoricRecvLine):
         """
         cmd = self.cmd_list.pop(0)
         exe = self.get_executable(cmd)
-        #self.executing = True
         exe.run()
     
 

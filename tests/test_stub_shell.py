@@ -32,17 +32,17 @@ class ShellProtocolTest(unittest.TestCase):
     def test_lineReceived_without_args(self):
         sp = base.get_shell_protocol()
         # disable running commands in the stack, so we can inspect it
-        sp.run_cmd_stack = lambda: None
+        sp.resume = lambda x: None
         sp.lineReceived("command")
-        command = sp.cmd_stack[0]
+        command = sp.cmd_stack[0][0]
         name = command['name']
         self.assertEqual(name, 'command')
 
     def test_lineReceived_with_args(self):
         sp = base.get_shell_protocol()
-        sp.run_cmd_stack = lambda: None 
+        sp.resume = lambda x: None 
         sp.lineReceived("command arg0 arg1")
-        command = sp.cmd_stack[0]
+        command = sp.cmd_stack[0][0]
         name = command['name']
         args = command['args']
         self.assertEqual(name, 'command')
@@ -51,9 +51,10 @@ class ShellProtocolTest(unittest.TestCase):
 
     def test_multiple_command_line(self):
         sp = base.get_shell_protocol()
-        sp.run_cmd_stack = lambda: None
+        sp.resume = lambda x: None
         sp.lineReceived("command0 arg0; command1 arg1.0 arg1.1")
-        cmd2 = sp.cmd_stack[1]
+        cmd_list = sp.cmd_stack[0]
+        cmd2 = cmd_list[1]
         name = cmd2['name']
         args = cmd2['args']
         self.assertEqual(name, 'command1')
@@ -123,10 +124,7 @@ class ShellProtocolTest(unittest.TestCase):
             sp.terminal.value(),
             "pass!\n"
             "my args are: a1, a2\n"
-            + PROMPT
-        )
-        self.assertEqual(
-            sp.terminal.value(),
+            + PROMPT +
             "pass!\n"
             "my args are: b1, b2\n"
             + PROMPT
