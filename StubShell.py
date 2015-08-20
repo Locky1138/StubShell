@@ -160,7 +160,7 @@ class ShellProtocol(recvline.HistoricRecvLine):
         return exe_command_not_found(cmd, match, self)
 
     def writeln(self, data):
-        print "OUTPUT: %s" % data
+        log.msg("OUTPUT: %s" % data)
         self.terminal.write(data)
         self.terminal.nextLine()
 
