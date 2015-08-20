@@ -185,6 +185,7 @@ class ShellProtocol(recvline.HistoricRecvLine):
         """
         cmd = self.cmd_list.pop(0)
         exe = self.get_executable(cmd)
+        # self.current_exe = exe
         exe.run()
     
 

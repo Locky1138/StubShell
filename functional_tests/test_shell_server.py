@@ -68,3 +68,20 @@ class StubShellServerTest(unittest.TestCase):
             self.shell.before,
             "pass!\r\n"
         )
+
+    def test_ctrl_c_ends_execution(self):
+        """May have to deal with terminating a deferred chain for this
+        """
+        self.shell.sendline('wait 5')
+        self.shell.send('\003')
+        self.shell.expect(PROMPT)
+        self.assertEqual(
+            self.shell.before,
+            "wait 5\r\n"
+            "Begin Waiting:\r\n"
+            "^C\r\n"
+        )
+
+    def test_ctrl_d_exits_terminal(self):
+        self.shell.send('\004')
+        self.shell.expect(pexpect.EOF)
