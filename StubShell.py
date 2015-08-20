@@ -192,6 +192,10 @@ class StubShellServer(factory.SSHFactory):
         pub_key_file = os.path.join(self.keypath, "public.key")
         priv_key_file = os.path.join(self.keypath, "private.key")
 
+        if not (os.path.exists(pub_key_file)
+            and os.path.exists(priv_key_file)):
+            self.generate_rsa_keys()
+
         pub_key_string = file(pub_key_file).read()
         priv_key_string = file(priv_key_file).read()
 
@@ -201,4 +205,19 @@ class StubShellServer(factory.SSHFactory):
         self.privateKeys = {
             'ssh-rsa': keys.Key.fromString(data=priv_key_string)
         }
+
+    def generate_rsa_keys(self):
+        sys.stdout.write("Generating RSA keypair... ")
+
+        from Crypto.PublicKey import RSA
+        from twisted.python import randbytes
+
+        rsa_key = RSA.generate(1024, randbytes.secureRandom)
+        file(pub_key_file, 'w+b').write(
+            keys.Key(rsa_key).public().toString('openssh')
+        )
+        file(priv_key_file, 'w+b').write(
+            keys.Key(rsaKey).toString('openssh')
+        )
+        privateKeyString = keys.Key(rsaKey).toString('openssh')
         
