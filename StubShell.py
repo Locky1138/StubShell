@@ -6,7 +6,6 @@ from twisted.conch.insults import insults
 import os
 import sys
 import re
-from twisted.internet import reactor, defer
 from twisted.python import log
 
 from BaseExecutables import exe_exit, exe_command_not_found

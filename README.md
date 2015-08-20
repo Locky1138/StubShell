@@ -11,6 +11,13 @@ Python
 ------
 Runs on Python 2.7, until Twisted is updated to work on 3.4
 
+conda_env.yaml is provided to set up a conda virtual environment
+
+If you have miniconda or anaconda installed, run:
+'''
+conda create --StubShell --file conda_env.yaml
+'''
+
 Twisted
 -------
 Created using the [Twisted](https://twistedmatrix.com/trac/) framework
