@@ -17,31 +17,24 @@ Runs on Python 2.7, until Twisted is updated to work on 3.4
 
 conda_env.yaml is provided to set up a conda virtual environment
 
-If you have miniconda or anaconda installed, run:
-'''
-conda create --StubShell --file conda_env.yaml
-'''
+If you have miniconda or anaconda installed, run::
+    conda create --StubShell --file conda_env.yaml
 
 package
 -------
 
-standard setup.py install
-'''
-python setup.py install
-'''
+standard setup.py install::
+    python setup.py install
+
 this will create an executable entry-point in your site-packages/bin dir
 
 run the server
 --------------
-if you installed the package you can use the executable entry-point
-'''
-stubshell -c path/to/your/custom_executables
-'''
-you can also run it manually with the run_stubshell.py helper script in the project directory
-'''
-python run_stubshell.py -c path/to/your/custom_executables
-'''
+if you installed the package you can use the executable entry-point::
+    stubshell -c path/to/your/custom_executables
 
+you can also run it manually with the run_stubshell.py helper script in the project directory::
+    python run_stubshell.py -c path/to/your/custom_executables
 
 Twisted
 =======
