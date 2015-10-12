@@ -1,9 +1,9 @@
 # Hacky Test Server for FT's
 # Run with: python -m functional_tests.RunTestServer
 
-import StubShell
+from stubshell import StubShell
 import sys
-from BaseExecutables import get_executables 
+from stubshell.BaseExecutables import get_executables 
 
 from twisted.python import log
 from twisted.internet import reactor

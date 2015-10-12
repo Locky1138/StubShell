@@ -1,6 +1,6 @@
 # Run Me with 'trial tests/test_stub_shell.py'
 from twisted.trial import unittest
-import BaseExecutables
+from stubshell import BaseExecutables
 import base
 from twisted.internet import task
 

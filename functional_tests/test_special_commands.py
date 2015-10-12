@@ -2,7 +2,7 @@
 # Run Me with 'trial functional_tests.test_shell_server.py'
 import unittest
 import pexpect
-from StubShell import PROMPT
+from stubshell.StubShell import PROMPT
 
 
 class SpecialCommandsTest(unittest.TestCase):

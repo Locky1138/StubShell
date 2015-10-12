@@ -248,6 +248,8 @@ class StubShellServer(factory.SSHFactory):
         }
 
     def generate_rsa_keys(self):
+        """Creates a new RSA key pair
+        """
         sys.stdout.write("Generating New RSA keypair... ")
 
         from Crypto.PublicKey import RSA

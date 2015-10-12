@@ -1,5 +1,5 @@
 # Run Me with 'trial tests/test_stub_shell.py'
-from BaseExecutables import Executable, TimedExe
+from stubshell.BaseExecutables import Executable, TimedExe
 
 
 # Executables for testing

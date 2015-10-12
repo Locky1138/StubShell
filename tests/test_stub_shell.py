@@ -1,12 +1,11 @@
 # Run Me with 'trial tests/test_stub_shell.py'
 import base
-from twisted.trial import unittest
-import StubShell
-from BaseExecutables import Executable
+from stubshell import StubShell
+from stubshell.BaseExecutables import Executable, TimedExe
 
+from twisted.trial import unittest
 from twisted.cred import portal, checkers
 from twisted.internet import reactor, task, defer
-
 
 PROMPT = base.PROMPT
 

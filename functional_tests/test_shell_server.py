@@ -4,7 +4,7 @@
 import unittest
 import pexpect
 import time
-from StubShell import PROMPT
+from stubshell.StubShell import PROMPT
 
 
 class StubShellServerTest(unittest.TestCase):

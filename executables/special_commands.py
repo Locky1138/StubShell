@@ -1,4 +1,4 @@
-from BaseExecutables import Executable
+from stubshell.BaseExecutables import Executable
 import re
 
 class exe_stty(Executable):

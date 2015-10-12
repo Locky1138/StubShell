@@ -1,7 +1,7 @@
 # Run Me with 'trial tests/test_stub_shell.py'
-import StubShell
+from stubshell import StubShell
 from twisted.test.proto_helpers import StringTransport
-from BaseExecutables import Executable, TimedExe
+from stubshell.BaseExecutables import Executable, TimedExe
 
 
 PROMPT = StubShell.PROMPT
