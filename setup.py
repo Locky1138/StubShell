@@ -6,10 +6,16 @@ https://github.com/pypa/sampleproject
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-
+import re
 
 #get __version__ from _version.py
-exec(open('stubshell/_version.py').read())
+version = re.search(
+    '^__version__\s*=\s*"(.*)"',
+    open('stubshell/StubShell.py').read(),
+    re.M
+    ).group(1)
+
+
 
 
 # Get the long description from the relevant file
@@ -22,7 +28,7 @@ setup(
     name="StubShell",
 
     # Version number (initial):
-    version=__version__,
+    version=version,
 
     # Application author details:
     author="Locky",
@@ -36,7 +42,7 @@ setup(
 
     # entry points, to generate executables in python/bin/
     entry_points = {
-        "console_scripts": ['stubshell = stubshell.RunStubshell:main']
+        "console_scripts": ['stubshell = stubshell.RunServer:main']
         },
 
     # Include additional files into the package

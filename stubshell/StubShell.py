@@ -1,3 +1,5 @@
+__version__ = "0.1.0"
+
 from zope.interface import implements
 from twisted.cred import portal, checkers
 from twisted.conch import avatar, interfaces, recvline
